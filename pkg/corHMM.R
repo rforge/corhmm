@@ -32,6 +32,8 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	phy$edge.length[phy$edge.length==0]=1e-5
 	data <- data.frame(data[,2], data[,2],row.names=data[,1])
 	data <- data[phy$tip.label,]
+	#Have to collect this here. When you reorder the branching time function is not correct
+	tl<-max(branching.times(phy))
 	
 	#Some initial values for use later
 	k=2
@@ -320,7 +322,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			dat<-as.matrix(data)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
 			par.score<-parsimony(phy, dat, method="fitch")
-			mean = par.score/max(branching.times(phy))
+			mean = par.score/tl
 			starts<-rexp(np, mean)
 			ip = starts
 			out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
@@ -354,7 +356,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			dat<-as.matrix(data)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
 			par.score<-parsimony(phy, dat, method="fitch")
-			mean = par.score/max(branching.times(phy))
+			mean = par.score/tl
 			#Initializes a logfile, tmp, of the likelihood for different starting values. Check in case computer gets disrupted during an analysis
 			tmp = matrix(,1,ncol=(1+np))
 			foreach(i=1:nstarts)%dopar%{
