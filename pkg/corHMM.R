@@ -102,9 +102,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	if (rate.cat == 3){
 		rate <- matrix(NA, nl*k+2, nl*k+2)
-		np <- 18
-		tmp <- c(5,6,4,6,4,5,2,3,1,3,1,2)
-		tmp2 <- c(1,1,2,2,3,3,4,4,5,5,6,6)
+		np <- 14
+		tmp <-	c(3,5,6,4,6,1,4,5,2,3,6,1,3,1,2,4)
+		tmp2 <- c(1,1,1,2,2,3,3,3,4,4,4,5,5,6,6,6)
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(nl*k+2),(nl*k+2))
@@ -143,9 +143,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	if (rate.cat == 4){
 		rate <- matrix(NA, nl*k+4, nl*k+4)
-		np <- 32
-		tmp <- c(6,7,8,5,7,8,5,6,8,5,6,7,2,3,4,1,3,4,1,2,4,1,2,3)
-		tmp2 <- c(1,1,1,2,2,2,3,3,3,4,4,4,5,5,5,6,6,6,7,7,7,8,8,8)
+		np <- 20
+		tmp <- c(3,4,6,7,8,4,5,7,8,1,5,6,8,1,2,5,6,7,2,3,4,7,8,1,3,4,8,1,2,4,5,1,2,3,5,6)
+		tmp2 <-c(1,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8)
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(nl*k+4),(nl*k+4))
@@ -183,9 +183,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	if (rate.cat == 5){
 		rate <- matrix(NA, nl*k+6, nl*k+6)
-		np <- 50
-		tmp <- c(7,8,9,10,6,8,9,10,6,7,9,10,6,7,8,10,6,7,8,9,2,3,4,5,1,3,4,5,1,2,4,5,1,2,3,5,1,2,3,4)
-		tmp2 <-c(1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10)
+		np <- 26
+		tmp <- c(3,4,5,7,8,9,10,4,5,6,8,9,10,1,5,6,7,9,10,1,2,6,7,8,10,1,2,3,6,7,8,9,2,3,4,5,8,9,10,1,3,4,5,9,10,1,2,4,5,6,10,1,2,3,5,6,7,1,2,3,4,6,7,8)
+		tmp2 <-c(1,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9,10,10,10,10,10,10,10)		
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(nl*k+6),(nl*k+6))
@@ -433,7 +433,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			}
 			if (node.states == "joint"){
 				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM2cat.xls", quote=FALSE, sep="\t")
+				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM2cat.xls", quote=FALSE, row.names=F, sep="\t")
 				phy$node.label <- lik.anc[-TIPS]
 				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
 			}			
@@ -456,9 +456,8 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-					print("here")
 					lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-					write.table(cbind(row.names(data),lik.anc[TIPS]), file="Tipstates.HMM3cat.xls", quote=FALSE, sep="\t")
+					write.table(cbind(row.names(data),lik.anc[TIPS]), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
 					phy$node.label <- lik.anc[-TIPS]
 					write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
 			}			
@@ -482,7 +481,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			}
 			if (node.states == "joint"){
 				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM4cat.xls", quote=FALSE, sep="\t")
+				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM4cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc[-TIPS]
 				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
 			}			
@@ -506,7 +505,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			}
 			if (node.states == "joint"){
 				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM5cat.xls", quote=FALSE, sep="\t")
+				write.table(cbind(row.names(data), lik.anc[TIPS]), file="Tipstates.HMM5cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc[-TIPS]
 				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
 			}			
