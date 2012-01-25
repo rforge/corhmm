@@ -8,6 +8,8 @@
 
 recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
+	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
+	phy$edge.length[phy$edge.length==0]=1e-2
 	#Some initial values for use later
 	k=2
 	nl=2
@@ -261,6 +263,8 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			#If a tip calculate C_y(i) for the tips and stores in liks matrix:
 			if(any(desNodes[desIndex]==phy$edge[,1])==FALSE){
 				liks[desNodes[desIndex],] <- expm(Q * phy$edge.length[i], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+				#Divide by the sum of the liks to deal with underflow issues:
+				liks[desNodes[desIndex],] <- liks[desNodes[desIndex],]/sum(liks[desNodes[desIndex],])
 				#Collects the likeliest state at the tips:
 				comp[desNodes[desIndex],] = which.max(liks[desNodes[desIndex],])
 			}
@@ -274,7 +278,9 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				for (desIndex in sequence(length(desRows))){
 					#Question: Fig 3 shows that Pk is equal to the tip frequency -- but this is the basic marginal calculation:
 					root.p <- root.p * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+					print(root.p)
 				}
+				print(root.p/sum(root.p)) 
 				liks[focal, ] <- root.p
 			}
 			else{
@@ -284,7 +290,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 		else{
 			#Calculates P_ij(t_z):
 			Pij <- expm(Q * tz, method=c("Ward77"))
-			#Calculates L_z(i):(this part is a bit embarrassing -- must be a matrix solution. But how to do it if there are polytomies?)
+			#Calculates L_z(i):(this part is a bit embarrassing -- must be a matrix solution. But how to do it if there are polytomies?) -- will deal with later:
 			if(rate.cat==1){
 				v1=v2=1
 				for (desIndex in sequence(length(desRows))){
@@ -299,6 +305,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				comp[focal,1] <- which.max(L[1,])
 				liks[focal,2] <- max(L[2,])
 				comp[focal,2] <- which.max(L[2,])
+				liks[focal,] <- liks[focal,]/sum(liks[focal,])
 			}
 			if(rate.cat==2){
 				v1=v2=v3=v4=1
@@ -322,6 +329,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				comp[focal,3] <- which.max(L[3,])
 				liks[focal,4] <- max(L[4,])
 				comp[focal,4] <- which.max(L[4,])
+				liks[focal,] <- liks[focal,]/sum(liks[focal,])
 			}
 			if(rate.cat==3){
 				v1=v2=v3=v4=v5=v6=1
@@ -352,7 +360,8 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				liks[focal,5] <- max(L[5,])
 				comp[focal,5] <- which.max(L[5,])
 				liks[focal,6] <- max(L[6,])
-				comp[focal,6] <- which.max(L[6,])				
+				comp[focal,6] <- which.max(L[6,])
+				liks[focal,] <- liks[focal,]/sum(liks[focal,])
 			}
 			if(rate.cat==4){
 				v1=v2=v3=v4=v5=v6=v7=v8=1
@@ -392,6 +401,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				comp[focal,7] <- which.max(L[7,])
 				liks[focal,8] <- max(L[8,])
 				comp[focal,8] <- which.max(L[8,])
+				liks[focal,] <- liks[focal,]/sum(liks[focal,])
 			}
 			if(rate.cat==5){
 				v1=v2=v3=v4=v5=v6=v7=v8=v9=v10=1
@@ -439,6 +449,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 				comp[focal,9] <- which.max(L[9,])
 				liks[focal,10] <- max(L[10,])
 				comp[focal,10] <- which.max(L[10,])
+				liks[focal,] <- liks[focal,]/sum(liks[focal,])
 			}
 		}
 	}

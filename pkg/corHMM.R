@@ -376,7 +376,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	#If a user-specified starting value(s) is supplied:
 	else{
-		cat("Begin subplex optimization routine -- Starting value:",ip, "\n")
+		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
 		ip=ip
 		out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
 	}
@@ -456,10 +456,10 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-					lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-					write.table(cbind(row.names(data),lik.anc[TIPS]), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
-					phy$node.label <- lik.anc[-TIPS]
-					write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
+				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				write.table(cbind(row.names(data),lik.anc[TIPS]), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
+				phy$node.label <- lik.anc[-TIPS]
+				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
 			}			
 		}
 	}
@@ -528,7 +528,4 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	
 	obj
 }
-
-
-
 
