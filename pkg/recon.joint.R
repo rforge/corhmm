@@ -9,7 +9,7 @@
 recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
 	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
-	phy$edge.length[phy$edge.length==0]=1e-2
+	phy$edge.length[phy$edge.length==0]=1e-5
 	#Some initial values for use later
 	k=2
 	obj <- NULL
