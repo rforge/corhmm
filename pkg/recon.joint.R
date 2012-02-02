@@ -4,7 +4,7 @@
 
 #Algorithm is based on Pupko et al (2000). Trees do not need to be bifurcating. Also, the code is written
 #so that it can be used as a separate function from corHMM. All that is required is a tree, trait, and a vector
-#of estimated parameter values. It will output the joint ancestral reconstruction.
+#of estimated parameter values and the user is provided the joint ancestral reconstruction.
 
 recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
@@ -275,11 +275,9 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			if(is.null(root.p)){
 				root.p=1
 				for (desIndex in sequence(length(desRows))){
-					#Question: Fig 3 shows that Pk is equal to the tip frequency -- but this is the basic marginal calculation:
+					#This is the basic marginal calculation:
 					root.p <- root.p * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
-					print(root.p)
 				}
-				print(root.p/sum(root.p)) 
 				liks[focal, ] <- root.p
 			}
 			else{
@@ -289,167 +287,16 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 		else{
 			#Calculates P_ij(t_z):
 			Pij <- expm(Q * tz, method=c("Ward77"))
-			#Calculates L_z(i):(this part is a bit embarrassing -- must be a matrix solution. But how to do it if there are polytomies?) -- will deal with later:
-			if(rate.cat==1){
-				v1=v2=1
-				for (desIndex in sequence(length(desRows))){
-					v1 <- v1 * liks[desNodes[desIndex],1] 
-					v2 <- v2 * liks[desNodes[desIndex],2]
-				}
-				v1 <- Pij[,1] * v1
-				v2 <- Pij[,2] * v2
-				L <- cbind(v1,v2)
-				#Collects which is the highest likelihood and which state it corresponds to:
-				liks[focal,1] <- max(L[1,])
-				comp[focal,1] <- which.max(L[1,])
-				liks[focal,2] <- max(L[2,])
-				comp[focal,2] <- which.max(L[2,])
-				liks[focal,] <- liks[focal,]/sum(liks[focal,])
+			#Calculates L_z(i):
+			v<-c(rep(1, k*rate.cat))
+			for (desIndex in sequence(length(desRows))){
+				v = v * liks[desNodes[desIndex],]
 			}
-			if(rate.cat==2){
-				v1=v2=v3=v4=1
-				for (desIndex in sequence(length(desRows))){
-					v1 <- v1 * liks[desNodes[desIndex],1] 
-					v2 <- v2 * liks[desNodes[desIndex],2]
-					v3 <- v3 * liks[desNodes[desIndex],3] 
-					v4 <- v4 * liks[desNodes[desIndex],4]
-				}
-				v1 <- Pij[,1] * v1
-				v2 <- Pij[,2] * v2
-				v3 <- Pij[,3] * v3
-				v4 <- Pij[,4] * v4
-				L <- cbind(v1,v2,v3,v4)
-				#Collects which is the highest likelihood and which state it corresponds to:
-				liks[focal,1] <- max(L[1,])
-				comp[focal,1] <- which.max(L[1,])
-				liks[focal,2] <- max(L[2,])
-				comp[focal,2] <- which.max(L[2,])
-				liks[focal,3] <- max(L[3,])
-				comp[focal,3] <- which.max(L[3,])
-				liks[focal,4] <- max(L[4,])
-				comp[focal,4] <- which.max(L[4,])
-				liks[focal,] <- liks[focal,]/sum(liks[focal,])
-			}
-			if(rate.cat==3){
-				v1=v2=v3=v4=v5=v6=1
-				for (desIndex in sequence(length(desRows))){
-					v1 <- v1 * liks[desNodes[desIndex],1] 
-					v2 <- v2 * liks[desNodes[desIndex],2]
-					v3 <- v3 * liks[desNodes[desIndex],3] 
-					v4 <- v4 * liks[desNodes[desIndex],4]
-					v5 <- v5 * liks[desNodes[desIndex],5] 
-					v6 <- v6 * liks[desNodes[desIndex],6]
-				}
-				v1 <- Pij[,1] * v1
-				v2 <- Pij[,2] * v2
-				v3 <- Pij[,3] * v3
-				v4 <- Pij[,4] * v4
-				v5 <- Pij[,5] * v5
-				v6 <- Pij[,6] * v6
-				L <- cbind(v1,v2,v3,v4,v5,v6)
-				#Collects which is the highest likelihood and which state it corresponds to:
-				liks[focal,1] <- max(L[1,])
-				comp[focal,1] <- which.max(L[1,])
-				liks[focal,2] <- max(L[2,])
-				comp[focal,2] <- which.max(L[2,])
-				liks[focal,3] <- max(L[3,])
-				comp[focal,3] <- which.max(L[3,])
-				liks[focal,4] <- max(L[4,])
-				comp[focal,4] <- which.max(L[4,])
-				liks[focal,5] <- max(L[5,])
-				comp[focal,5] <- which.max(L[5,])
-				liks[focal,6] <- max(L[6,])
-				comp[focal,6] <- which.max(L[6,])
-				liks[focal,] <- liks[focal,]/sum(liks[focal,])
-			}
-			if(rate.cat==4){
-				v1=v2=v3=v4=v5=v6=v7=v8=1
-				for (desIndex in sequence(length(desRows))){
-					v1 <- v1 * liks[desNodes[desIndex],1] 
-					v2 <- v2 * liks[desNodes[desIndex],2]
-					v3 <- v3 * liks[desNodes[desIndex],3] 
-					v4 <- v4 * liks[desNodes[desIndex],4]
-					v5 <- v5 * liks[desNodes[desIndex],5] 
-					v6 <- v6 * liks[desNodes[desIndex],6]
-					v7 <- v7 * liks[desNodes[desIndex],7] 
-					v8 <- v8 * liks[desNodes[desIndex],8]
-				}
-				v1 <- Pij[,1] * v1
-				v2 <- Pij[,2] * v2
-				v3 <- Pij[,3] * v3
-				v4 <- Pij[,4] * v4
-				v5 <- Pij[,5] * v5
-				v6 <- Pij[,6] * v6
-				v7 <- Pij[,7] * v7
-				v8 <- Pij[,8] * v8
-				L <- cbind(v1,v2,v3,v4,v5,v6,v7,v8)
-				#Collects which is the highest likelihood and which state it corresponds to:
-				liks[focal,1] <- max(L[1,])
-				comp[focal,1] <- which.max(L[1,])
-				liks[focal,2] <- max(L[2,])
-				comp[focal,2] <- which.max(L[2,])
-				liks[focal,3] <- max(L[3,])
-				comp[focal,3] <- which.max(L[3,])
-				liks[focal,4] <- max(L[4,])
-				comp[focal,4] <- which.max(L[4,])
-				liks[focal,5] <- max(L[5,])
-				comp[focal,5] <- which.max(L[5,])
-				liks[focal,6] <- max(L[6,])
-				comp[focal,6] <- which.max(L[6,])
-				liks[focal,7] <- max(L[7,])
-				comp[focal,7] <- which.max(L[7,])
-				liks[focal,8] <- max(L[8,])
-				comp[focal,8] <- which.max(L[8,])
-				liks[focal,] <- liks[focal,]/sum(liks[focal,])
-			}
-			if(rate.cat==5){
-				v1=v2=v3=v4=v5=v6=v7=v8=v9=v10=1
-				for (desIndex in sequence(length(desRows))){
-					v1 <- v1 * liks[desNodes[desIndex],1] 
-					v2 <- v2 * liks[desNodes[desIndex],2]
-					v3 <- v3 * liks[desNodes[desIndex],3] 
-					v4 <- v4 * liks[desNodes[desIndex],4]
-					v5 <- v5 * liks[desNodes[desIndex],5] 
-					v6 <- v6 * liks[desNodes[desIndex],6]
-					v7 <- v7 * liks[desNodes[desIndex],7] 
-					v8 <- v8 * liks[desNodes[desIndex],8]
-					v9 <- v9 * liks[desNodes[desIndex],9] 
-					v10 <- v10 * liks[desNodes[desIndex],10]
-				}
-				v1 <- Pij[,1] * v1
-				v2 <- Pij[,2] * v2
-				v3 <- Pij[,3] * v3
-				v4 <- Pij[,4] * v4
-				v5 <- Pij[,5] * v5
-				v6 <- Pij[,6] * v6
-				v7 <- Pij[,7] * v7
-				v8 <- Pij[,8] * v8
-				v9 <- Pij[,9] * v9
-				v10 <- Pij[,10] * v10
-				L <- cbind(v1,v2,v3,v4,v5,v6,v7,v8,v9,v10)
-				#Collects which is the highest likelihood and which state it corresponds to:
-				liks[focal,1] <- max(L[1,])
-				comp[focal,1] <- which.max(L[1,])
-				liks[focal,2] <- max(L[2,])
-				comp[focal,2] <- which.max(L[2,])
-				liks[focal,3] <- max(L[3,])
-				comp[focal,3] <- which.max(L[3,])
-				liks[focal,4] <- max(L[4,])
-				comp[focal,4] <- which.max(L[4,])
-				liks[focal,5] <- max(L[5,])
-				comp[focal,5] <- which.max(L[5,])
-				liks[focal,6] <- max(L[6,])
-				comp[focal,6] <- which.max(L[6,])
-				liks[focal,7] <- max(L[7,])
-				comp[focal,7] <- which.max(L[7,])
-				liks[focal,8] <- max(L[8,])
-				comp[focal,8] <- which.max(L[8,])
-				liks[focal,9] <- max(L[9,])
-				comp[focal,9] <- which.max(L[9,])
-				liks[focal,10] <- max(L[10,])
-				comp[focal,10] <- which.max(L[10,])
-				liks[focal,] <- liks[focal,]/sum(liks[focal,])
-			}
+			L <- t(Pij) * v
+			#Collects which is the highest likelihood and which state it corresponds to:
+			liks[focal,] <- apply(L, 2, max)
+			comp[focal,] <- apply(L, 2, which.max)
+			liks[focal,] <- liks[focal,]/sum(liks[focal,])
 		}
 	}
 	#If the state at the root is not specified root will just be the joint estimate:
@@ -474,7 +321,9 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			lik.states[des] <- comp[des,tmp]
 		}
 	}
-	lik.states
+	obj$lik.tip.states <- lik.states[TIPS]
+	obj$lik.anc.states <- lik.states[-TIPS]
+	obj
 }
 
 

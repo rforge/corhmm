@@ -2,6 +2,10 @@
 
 #written by Jeremy M. Beaulieu
 
+#Algorithm is based on ace(), though trees do not need to be bifurcating. Also, the code is written
+#so that it can be used as a separate function from corHMM. All that is required is a tree, trait, and a vector
+#of estimated parameter values and the user is provided the marginal ancestral reconstruction.
+
 recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
 	#Some initial values for use later
@@ -259,7 +263,9 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 		comp[focal] <- sum(v)
 		liks[focal, ] <- v/comp[focal]
 	}
-	liks[-TIPS, ]
+	obj$liks.anc.states<-liks[-TIPS, ]
+	
+	obj
 }
 
 
