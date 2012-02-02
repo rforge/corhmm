@@ -247,8 +247,6 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 	anc <- unique(phy$edge[,1])
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
-	#These probabilities are just for example and taken from Table 1 in Pupko et al 2000.
-	#Remember to add in exponentiation of Q to get probabilities for real datasets:
 
 	for (i  in seq(from = 1, length.out = nb.node)) {
 		#the ancestral node at row i is called focal
@@ -258,7 +256,7 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 		desNodes<-phy$edge[desRows,2]
 		v <- 1
 		for (desIndex in sequence(length(desRows))){
-			v<-v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+			v <- v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 		}
 		comp[focal] <- sum(v)
 		liks[focal, ] <- v/comp[focal]

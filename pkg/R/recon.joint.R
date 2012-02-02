@@ -9,7 +9,7 @@
 recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
 	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
-	phy$edge.length[phy$edge.length==0]=1e-5
+	phy$edge.length[phy$edge.length<=1e-5]=1e-5
 	#Some initial values for use later
 	k=2
 	obj <- NULL
@@ -278,7 +278,8 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 					#This is the basic marginal calculation:
 					root.p <- root.p * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 				}
-				liks[focal, ] <- root.p
+				#Divide by the sum of the liks to deal with underflow issues:
+				liks[focal, ] <- root.p/sum(root.p)
 			}
 			else{
 				liks[focal, ] <- root.p
@@ -296,6 +297,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			#Collects which is the highest likelihood and which state it corresponds to:
 			liks[focal,] <- apply(L, 2, max)
 			comp[focal,] <- apply(L, 2, which.max)
+			#Divide by the sum of the liks to deal with underflow issues:
 			liks[focal,] <- liks[focal,]/sum(liks[focal,])
 		}
 	}
