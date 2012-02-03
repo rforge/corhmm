@@ -257,7 +257,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 		desRows<-which(phy$edge[,1]==focal)
 		#Get node information for each descendant:
 		desNodes<-phy$edge[desRows,2]
-		#Initiates a loop to check if any nodes are tips; bifurcations not necessary:
+		#Initiates a loop to check if any nodes are tips:
 		for (desIndex in sequence(length(desRows))){
 			#If a tip calculate C_y(i) for the tips and stores in liks matrix:
 			if(any(desNodes[desIndex]==phy$edge[,1])==FALSE){
