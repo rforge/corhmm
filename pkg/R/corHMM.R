@@ -68,7 +68,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		index <- matrix(TRUE,k*rate.cat,k*rate.cat)
 		diag(index) <- FALSE
 		index[tmp] <- FALSE
-		index[tmp2] <- FALSE			
+		index[tmp2] <- FALSE
 		rate[index] <- 1:np
 		#If par.drop is not null will adjust the rate matrix
 		if(!is.null(par.drop)==TRUE){
@@ -102,8 +102,8 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 3){
 		rate <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- 14
-		tmp <-	c(3,5,6,4,6,1,4,5,2,3,6,1,3,1,2,4)
-		tmp2 <- c(1,1,1,2,2,3,3,3,4,4,4,5,5,6,6,6)
+		tmp <-	c(4,5,6,3,5,6,2,6,1,5,1,2,4,1,2,3)
+		tmp2 <- c(1,1,1,2,2,2,3,3,4,4,5,5,5,6,6,6)
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
@@ -143,8 +143,8 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 4){
 		rate <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- 20
-		tmp <- c(3,4,6,7,8,4,5,7,8,1,5,6,8,1,2,5,6,7,2,3,4,7,8,1,3,4,8,1,2,4,5,1,2,3,5,6)
-		tmp2 <-c(1,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,4,5,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,8)
+		tmp <- c(4,5,6,7,8,3,5,6,7,8,2,6,7,8,1,5,7,8,1,2,4,8,1,2,3,7,1,2,3,4,6,1,2,3,4,5)
+		tmp2 <-c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,7,8,8,8,8,8)
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
@@ -183,8 +183,8 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 5){
 		rate <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- 26
-		tmp <- c(3,4,5,7,8,9,10,4,5,6,8,9,10,1,5,6,7,9,10,1,2,6,7,8,10,1,2,3,6,7,8,9,2,3,4,5,8,9,10,1,3,4,5,9,10,1,2,4,5,6,10,1,2,3,5,6,7,1,2,3,4,6,7,8)
-		tmp2 <-c(1,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,9,9,9,9,9,9,10,10,10,10,10,10,10)		
+		tmp <- c(4,5,6,7,8,9,10,3,5,6,7,8,9,10,2,6,7,8,9,10,1,5,7,8,9,10,1,2,4,8,9,10,1,2,3,7,9,10,1,2,3,4,6,10,1,2,3,4,5,8,9,1,2,3,4,5,6,8,1,2,3,4,5,6,7)
+		tmp2 <-c(1,1,1,1,1,1, 1,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,8,9,9,9,9,9,9,9,10,10,10,10,10,10,10)		
 		tmp3 <- cbind(tmp,tmp2)
 		
 		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
@@ -237,32 +237,32 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 2){
 		liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 		for(i in 1:nb.tip){
-			if(x[i]==0){liks[i,1:2]=1}
-			if(x[i]==1){liks[i,3:4]=1}
+			if(x[i]==0){liks[i,c(1,3)]=1}
+			if(x[i]==1){liks[i,c(2,4)]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
 	if (rate.cat == 3){
 		liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 		for(i in 1:nb.tip){
-			if(x[i]==0){liks[i,1:3]=1}
-			if(x[i]==1){liks[i,4:6]=1}
+			if(x[i]==0){liks[i,c(1,3,5)]=1}
+			if(x[i]==1){liks[i,c(2,4,6)]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
 	if (rate.cat == 4){
 		liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 		for(i in 1:nb.tip){
-			if(x[i]==0){liks[i,1:4]=1}
-			if(x[i]==1){liks[i,5:8]=1}
+			if(x[i]==0){liks[i,c(1,3,5,7)]=1}
+			if(x[i]==1){liks[i,c(2,4,6,8)]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
 	if (rate.cat == 5){
 		liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 		for(i in 1:nb.tip){
-			if(x[i]==0){liks[i,1:5]=1}
-			if(x[i]==1){liks[i,6:10]=1}
+			if(x[i]==0){liks[i,c(1,3,5,7,9)]=1}
+			if(x[i]==1){liks[i,c(2,4,6,8,10)]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -417,12 +417,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 2){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(0,R2)","(1,R1)","(1,R2)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(0,R2)","(1,R1)","(1,R2)")
+		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("P(0,R1)","P(0,R2)","P(1,R1)","P(1,R2)")
+				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$liks.anc.states,1,which.max)
 				phy$node.label<-pr
@@ -441,12 +441,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 3){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(1,R1)","(1,R2)","(1,R3)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(1,R1)","(1,R2)","(1,R3)")
+		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("P(0,R1)","P(0,R2)","P(0,R3)","P(1,R1)","P(1,R2)","P(1,R3)")
+				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$liks.anc.states,1,which.max)
 				phy$node.label <- pr
@@ -465,12 +465,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 4){
 		obj$Param.est <- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(0,R4)","(1,R1)","(1,R2)","(1,R3)","(1,R4)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(0,R4)","(1,R1)","(1,R2)","(1,R3)","(1,R4)")
+		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("P(0,R1)","P(0,R2)","P(0,R3)","P(0,R4)","P(1,R1)","P(1,R2)","P(1,R3)","P(1,R4)")
+				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$liks.anc.states,1,which.max)
 				phy$node.label <- pr
@@ -489,12 +489,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 5){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(0,R4)","(0,R5)","(1,R1)","(1,R2)","(1,R3)","(1,R4)","(1,R5)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(0,R2)","(0,R3)","(0,R4)","(0,R5)","(1,R1)","(1,R2)","(1,R3)","(1,R4)","(1,R5)")
+		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("P(0,R1)","P(0,R2)","P(0,R3)","P(0,R4)","P(0,R5)","P(1,R1)","P(1,R2)","P(1,R3)","P(1,R4)","P(1,R5)")
+				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$liks.anc.states,1,which.max)
 				phy$node.label <- pr
