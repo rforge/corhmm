@@ -16,6 +16,7 @@
 #particular parameters to have the same rate. However, at the moment both of these features are 
 #not documented and may be difficult to use (it is a work in progress). 
 
+#The plethora of dependencies:
 require(ape)
 require(nloptr)
 require(numDeriv)
@@ -284,19 +285,24 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			desRows<-which(phy$edge[,1]==focal)
 			desNodes<-phy$edge[desRows,2]
 			v <- 1
+			#Loops through all descendants of focal (how we deal with polytomies):
 			for (desIndex in sequence(length(desRows))){
 				v<-v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 			}
+			#Sum the likelihoods:
 			comp[focal] <- sum(v)
+			#Divide each likelihood by the sum to obtain probabilities:
 			liks[focal, ] <- v/comp[focal]
 		}
-		root <- nb.tip + 1L	
+		#Specifies the root:
+		root <- nb.tip + 1L
+		#If any of the log have NAs restart search:
 		if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 		else{
-			#If root.p!=0 then will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 			if (is.null(root.p)){
 				-sum(log(comp[-TIPS]))
 			}
+			#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 			else{				
 				-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
 			}
@@ -325,7 +331,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			starts<-rexp(np, mean)
 			ip = starts
 			out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
-			#Initializes a logfile, tmp, of the likelihood for different starting values. Check in case computer gets disrupted during an analysis
+			#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
 			tmp = matrix(,1,ncol=(1+np))
 			tmp[,1] = -out$objective
 			tmp[,2:(np+1)] = starts
@@ -356,7 +362,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
 			par.score<-parsimony(phy, dat, method="fitch")/2
 			mean = par.score/tl
-			#Initializes a logfile, tmp, of the likelihood for different starting values. Check in case computer gets disrupted during an analysis
+			#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
 			tmp = matrix(,1,ncol=(1+np))
 			foreach(i=1:nstarts)%dopar%{
 				starts<-rexp(np, mean)

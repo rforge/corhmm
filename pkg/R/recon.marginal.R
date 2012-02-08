@@ -248,6 +248,7 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
 
+	#The same algorithm as in the main function. See comments in corHMM.R for details:
 	for (i  in seq(from = 1, length.out = nb.node)) {
 		#the ancestral node at row i is called focal
 		focal <- anc[i]

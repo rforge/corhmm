@@ -293,6 +293,7 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			for (desIndex in sequence(length(desRows))){
 				v = v * liks[desNodes[desIndex],]
 			}
+			#Finishes L_z(i):
 			L <- t(Pij) * v
 			#Collects which is the highest likelihood and which state it corresponds to:
 			liks[focal,] <- apply(L, 2, max)
@@ -323,8 +324,11 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 			lik.states[des] <- comp[des,tmp]
 		}
 	}
+	#Outputs likeliest tip states
 	obj$lik.tip.states <- lik.states[TIPS]
+	#Outputs likeliest node states
 	obj$lik.anc.states <- lik.states[-TIPS]
+	
 	obj
 }
 
