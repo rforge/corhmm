@@ -405,9 +405,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("P(0)","P(1)")
-				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$liks.anc.states,1,which.max)
+				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
 				phy$node.label <- pr
 				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
 				phy$node.label <- 1:nb.node
@@ -428,9 +428,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$liks.anc.states,1,which.max)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
 				phy$node.label<-pr
 				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
 				phy$node.label<-1:nb.node
@@ -452,9 +452,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
-				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$liks.anc.states,1,which.max)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
 				phy$node.label <- pr
 				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
 				phy$node.label <- 1:nb.node
@@ -476,9 +476,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
-				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$liks.anc.states,1,which.max)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
 				phy$node.label <- pr
 				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
 				phy$node.label <- 1:nb.node
@@ -500,9 +500,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
 				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
-				colnames(lik.anc$liks.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
-				write.table(lik.anc$liks.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$liks.anc.states,1,which.max)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
 				phy$node.label <- pr
 				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
 				phy$node.label <- 1:nb.node

@@ -8,6 +8,11 @@
 
 recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
+	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
+	phy$edge.length[phy$edge.length<=1e-5]=1e-5
+	data <- data.frame(data[,2], data[,2],row.names=data[,1])
+	data <- data[phy$tip.label,]
+		
 	#Some initial values for use later
 	k=2
 	obj <- NULL
@@ -247,7 +252,7 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 	anc <- unique(phy$edge[,1])
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
-
+	
 	#The same algorithm as in the main function. See comments in corHMM.R for details:
 	for (i  in seq(from = 1, length.out = nb.node)) {
 		#the ancestral node at row i is called focal
@@ -262,7 +267,7 @@ recon.marginal <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, r
 		comp[focal] <- sum(v)
 		liks[focal, ] <- v/comp[focal]
 	}
-	obj$liks.anc.states<-liks[-TIPS, ]
+	obj$lik.anc.states <- liks[-TIPS, ]
 	
 	obj
 }

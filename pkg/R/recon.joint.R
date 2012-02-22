@@ -10,6 +10,9 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 	
 	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
+	data <- data.frame(data[,2], data[,2],row.names=data[,1])
+	data <- data[phy$tip.label,]
+
 	#Some initial values for use later
 	k=2
 	obj <- NULL
@@ -261,11 +264,11 @@ recon.joint <- function(phy, data, p, rate.cat, par.drop=NULL, par.eq=NULL, root
 		for (desIndex in sequence(length(desRows))){
 			#If a tip calculate C_y(i) for the tips and stores in liks matrix:
 			if(any(desNodes[desIndex]==phy$edge[,1])==FALSE){
-				liks[desNodes[desIndex],] <- expm(Q * phy$edge.length[i], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+				liks[desNodes[desIndex],] <- expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 				#Divide by the sum of the liks to deal with underflow issues:
 				liks[desNodes[desIndex],] <- liks[desNodes[desIndex],]/sum(liks[desNodes[desIndex],])
 				#Collects the likeliest state at the tips:
-				comp[desNodes[desIndex],] = which.max(liks[desNodes[desIndex],])
+				comp[desNodes[desIndex],] <- which.max(liks[desNodes[desIndex],])
 			}
 		}
 		#Collects t_z, or the branch subtending focal:
