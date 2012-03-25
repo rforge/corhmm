@@ -296,7 +296,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		}
 		#Specifies the root:
 		root <- nb.tip + 1L
-		#If any of the log have NAs restart search:
+		#If any of the logs have NAs restart search:
 		if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 		else{
 			if (is.null(root.p)){
@@ -385,13 +385,14 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		ip=ip
 		out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
 	}
+
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
 	obj$loglik <- -out$objective
 	
 	obj$AIC <- -2*obj$loglik+2*np
 	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
-	
+
 	#Approximates the Hessian using the numDeriv function
 	h <- hessian(x=out$solution, func=dev)
 	#Initiates the summary process
@@ -404,7 +405,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		#Initiates user-specified reconstruction method:
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -414,7 +415,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
 			}
@@ -423,11 +424,11 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 2){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -437,7 +438,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM2cat.xls", quote=FALSE, row.names=F, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
@@ -447,11 +448,11 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 3){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -461,7 +462,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				write.table(cbind(row.names(data),lik.anc$lik.tip.states), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
@@ -471,11 +472,11 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 4){
 		obj$Param.est <- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -485,7 +486,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM4cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
@@ -495,11 +496,11 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	if (rate.cat == 5){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
-		colnames(obj$Param.est) <- colnames(obj$Param.est) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -509,19 +510,18 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, rate.cat, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM5cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
 			}			
 		}
 	}
-	obj$starting.value <- ip
+	#obj$starting.value <- ip
 	obj$iterations <- out$iterations
 	#The eigendecomposition of the Hessian matrix to assess whether or not the function has found the minimum
 	hess.eig <- eigen(h,symmetric=TRUE)
 	obj$eigval <- signif(hess.eig$values,2)	
-	obj$eigvect <- round(hess.eig$vectors, 2)
 	#If all the eigenvalues are positive then the function has found the maximum likelihood solution -- eigen ratio might be a good thing to add: 
 	#any parameter with a ratio exceeding 5000 being considered to be not very identifiable?
 	if(any(obj$eigval<0)){
