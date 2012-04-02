@@ -412,7 +412,31 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 					index[tmp3]<-FALSE
 					
 					rate[index] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp4 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+						}
+						np <- np-length(par.drop)
+						rate[index] <- 1:np
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp4 <- which(rate==par.eq[j], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+							np <- np-1
+							rate[index] <- 1:np
+							rate[tmp4] <- par.eq[i]
+						}
+					}
 					index.matrix <- rate
+					index.matrix[index.matrix == 0] = NA
+					
 					
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
@@ -433,7 +457,30 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 					index[tmp]<-FALSE
 					index[tmp3]<-FALSE
 					rate[index][c(1,2,3,5,6,8,9,11,12,15,18,21)] <- rate[index][c(4,7,10,13,16,14,19,17,20,22,23,24)] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp4 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+						}
+						np <- np-length(par.drop)
+						rate[index] <- 1:np
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp4 <- which(rate==par.eq[j], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+							np <- np-1
+							rate[index] <- 1:np
+							rate[tmp4] <- par.eq[i]
+						}
+					}
 					index.matrix <- rate
+					index.matrix[index.matrix == 0] = NA					
 					
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
@@ -454,7 +501,30 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 					index[tmp]<-FALSE
 					index[tmp3]<-FALSE			
 					rate[index] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp4 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+						}
+						np <- np-length(par.drop)
+						rate[index] <- 1:np
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp4 <- which(rate==par.eq[j], arr.ind=T)
+							index[tmp4] <- FALSE
+							rate[tmp4] <- 0
+							np <- np-1
+							rate[index] <- 1:np
+							rate[tmp4] <- par.eq[i]
+						}
+					}
 					index.matrix <- rate
+					index.matrix[index.matrix == 0] = NA
 					
 					rate[tmp] <- 0
 					rate[tmp2] <- 0

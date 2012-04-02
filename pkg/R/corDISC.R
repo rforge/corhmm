@@ -19,7 +19,7 @@ require(doMC)
 source("recon.joint.R")
 source("recon.marginal.R")
 
-corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), par.drop=c(5,8,13,14,15,18,21,22,23,24), par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -211,7 +211,31 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				index[tmp3]<-FALSE
 				
 				rate[index] <- 1:np
+				#If par.drop is not null will adjust the rate matrix
+				if(!is.null(par.drop)==TRUE){
+					for(i in 1:length(par.drop)){
+						tmp4 <- which(rate==par.drop[i], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+					}
+					np <- np-length(par.drop)
+					rate[index] <- 1:np
+				}
+				#If par.eq is not null then pairs of parameters are set equal to each other.
+				if(!is.null(par.eq)==TRUE){
+					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+						j<-i+1
+						tmp4 <- which(rate==par.eq[j], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+						np <- np-1
+						rate[index] <- 1:np
+						rate[tmp4] <- par.eq[i]
+					}
+				}
+				
 				index.matrix <- rate
+				index.matrix[index.matrix == 0] = NA				
 				
 				rate[tmp] <- 0
 				rate[tmp2] <- 0
@@ -232,7 +256,31 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				index[tmp]<-FALSE
 				index[tmp3]<-FALSE
 				rate[index][c(1,2,3,5,6,8,9,11,12,15,18,21)] <- rate[index][c(4,7,10,13,16,14,19,17,20,22,23,24)] <- 1:np
+				#If par.drop is not null will adjust the rate matrix
+				if(!is.null(par.drop)==TRUE){
+					for(i in 1:length(par.drop)){
+						tmp4 <- which(rate==par.drop[i], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+					}
+					np <- np-length(par.drop)
+					rate[index] <- 1:np
+				}
+				#If par.eq is not null then pairs of parameters are set equal to each other.
+				if(!is.null(par.eq)==TRUE){
+					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+						j<-i+1
+						tmp4 <- which(rate==par.eq[j], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+						np <- np-1
+						rate[index] <- 1:np
+						rate[tmp4] <- par.eq[i]
+					}
+				}
+				
 				index.matrix <- rate
+				index.matrix[index.matrix == 0] = NA				
 				
 				rate[tmp] <- 0
 				rate[tmp2] <- 0
@@ -253,8 +301,32 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				index[tmp]<-FALSE
 				index[tmp3]<-FALSE			
 				rate[index] <- 1:np
-				index.matrix <- rate
+				#If par.drop is not null will adjust the rate matrix
+				if(!is.null(par.drop)==TRUE){
+					for(i in 1:length(par.drop)){
+						tmp4 <- which(rate==par.drop[i], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+					}
+					np <- np-length(par.drop)
+					rate[index] <- 1:np
+				}
+				#If par.eq is not null then pairs of parameters are set equal to each other.
+				if(!is.null(par.eq)==TRUE){
+					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+						j<-i+1
+						tmp4 <- which(rate==par.eq[j], arr.ind=T)
+						index[tmp4] <- FALSE
+						rate[tmp4] <- 0
+						np <- np-1
+						rate[index] <- 1:np
+						rate[tmp4] <- par.eq[i]
+					}
+				}
 				
+				index.matrix <- rate
+				index.matrix[index.matrix == 0] = NA
+
 				rate[tmp] <- 0
 				rate[tmp2] <- 0
 				rate[tmp3] <- 0
@@ -400,7 +472,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 		out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
 	}
 	cat("Finished. Performing diagnostic tests.", "\n")
-	
+
 	obj$loglik <- -out$objective
 	obj$AIC <- -2*obj$loglik+2*np
 	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
@@ -426,7 +498,8 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop=par.drop, par.eq=par.eq, root.p)
+				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.DISCRETE.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesDISCRETE.tre", append=TRUE)
 			}
@@ -438,9 +511,12 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
 		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,0,0)","(1,0,0)","(0,1,0)","(0,0,1)","(1,1,0)","(1,0,1)","(0,1,1)","(1,1,1)")
 		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,0,0)","(1,0,0)","(0,1,0)","(0,0,1)","(1,1,0)","(1,0,1)","(0,1,1)","(1,1,1)")
+		hess.eig <- eigen(h,symmetric=TRUE)
+		obj$eigval <- signif(hess.eig$values,2)
+		print(obj)
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model, par.drop=par.drop, par.eq=par.eq, root.p)
 				colnames(lik.anc$lik.anc.states) <-  c("P(0,0,0)","P(1,0,0)","P(0,1,0)","P(0,0,1)","P(1,1,0)","P(1,0,1)","P(0,1,1)","P(1,1,1)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesDISCRETE.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -450,7 +526,8 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model,par.drop=par.drop, par.eq=par.eq, root.p)
+				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.DISCRETE.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesDISCRETE.tre", append=TRUE)
 			}
