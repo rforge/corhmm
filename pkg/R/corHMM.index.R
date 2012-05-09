@@ -42,12 +42,18 @@ corHMM.index<-function(rate.cat, par.drop=NULL, par.eq=NULL){
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j<-i+1
+				print(par.eq[j])
 				tmp4 <- which(rate==par.eq[j], arr.ind=T)
 				index[tmp4] <- FALSE
 				rate[tmp4] <- 0
 				np <- np-1
+				print(index)
 				rate[index] <- 1:np
 				rate[tmp4] <- par.eq[i]
+				if(par.eq[j] < par.eq[j+1] | is.na(par.eq[j] < par.eq[j+1])){
+					print("here")
+					par.eq<-par.eq-1
+				}
 			}
 		}
 		index.matrix <- rate

@@ -199,12 +199,16 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 		x <- data[,1]
 		TIPS <- 1:nb.tip
 		
+		for(i in 1:nb.tip){
+			if(is.na(x[i])){x[i]=2}
+		}
 		if (rate.cat == 1){
 			liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 			TIPS <- 1:nb.tip
 			for(i in 1:nb.tip){
 				if(x[i]==0){liks[i,1]=1}
 				if(x[i]==1){liks[i,2]=1}
+				if(x[i]==2){liks[i,1:2]=1}
 			}
 			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
@@ -213,6 +217,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			for(i in 1:nb.tip){
 				if(x[i]==0){liks[i,c(1,3)]=1}
 				if(x[i]==1){liks[i,c(2,4)]=1}
+				if(x[i]==2){liks[i,1:4]=1}
 			}
 			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
@@ -221,6 +226,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			for(i in 1:nb.tip){
 				if(x[i]==0){liks[i,c(1,3,5)]=1}
 				if(x[i]==1){liks[i,c(2,4,6)]=1}
+				if(x[i]==2){liks[i,1:6]=1}
 			}
 			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
@@ -229,6 +235,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			for(i in 1:nb.tip){
 				if(x[i]==0){liks[i,c(1,3,5,7)]=1}
 				if(x[i]==1){liks[i,c(2,4,6,8)]=1}
+				if(x[i]==2){liks[i,1:8]=1}
 			}
 			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
@@ -237,6 +244,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			for(i in 1:nb.tip){
 				if(x[i]==0){liks[i,c(1,3,5,7,9)]=1}
 				if(x[i]==1){liks[i,c(2,4,6,8,10)]=1}
+				if(x[i]==2){liks[i,1:10]=1}
 			}
 			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
@@ -385,10 +393,14 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			TIPS <- 1:nb.tip
 			
 			for(i in 1:nb.tip){
+				if(is.na(x[i])){x[i]=2 & y[i]=2}
+			}
+			for(i in 1:nb.tip){
 				if(x[i]==0 & y[i]==0){liks[i,1]=1}
 				if(x[i]==0 & y[i]==1){liks[i,2]=1}
 				if(x[i]==1 & y[i]==0){liks[i,3]=1}
 				if(x[i]==1 & y[i]==1){liks[i,4]=1}
+				if(x[i]==2 & y[i]==2){liks[i,1:4]=1}
 			}
 			Q <- matrix(0, nl^k, nl^k)
 		}
@@ -549,6 +561,9 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			TIPS <- 1:nb.tip
 			
 			for(i in 1:nb.tip){
+				if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
+			}
+			for(i in 1:nb.tip){
 				if(x[i]==0 & y[i]==0 & z[i]==0){liks[i,1]=1}
 				if(x[i]==1 & y[i]==0 & z[i]==0){liks[i,2]=1}
 				if(x[i]==0 & y[i]==1 & z[i]==0){liks[i,3]=1}
@@ -557,6 +572,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 				if(x[i]==1 & y[i]==0 & z[i]==1){liks[i,6]=1}
 				if(x[i]==0 & y[i]==1 & z[i]==1){liks[i,7]=1}
 				if(x[i]==1 & y[i]==1 & z[i]==1){liks[i,8]=1}
+				if(x[i]==2 & y[i]==2 & z[i]==2){liks[i,1:8]=1}
 			}
 			Q <- matrix(0, nl^k, nl^k)
 		}

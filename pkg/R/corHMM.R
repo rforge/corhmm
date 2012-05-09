@@ -16,18 +16,18 @@
 #particular parameters to have the same rate. However, at the moment both of these features are 
 #not documented and may be difficult to use (it is a work in progress). 
 
-#The plethora of dependencies:
+#A plethora of dependencies:
 require(ape)
 require(nloptr)
 require(numDeriv)
 require(expm)
 require(corpcor)
 require(phangorn)
-require(doMC)
+require(multicore)
 source("recon.joint.R")
 source("recon.marginal.R")
 
-corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -226,12 +226,16 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	x <- data[,1]
 	TIPS <- 1:nb.tip
 	
+	for(i in 1:nb.tip){
+		if(is.na(x[i])){x[i]=2}
+	}
 	if (rate.cat == 1){
 		liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
 		TIPS <- 1:nb.tip
 		for(i in 1:nb.tip){
 			if(x[i]==0){liks[i,1]=1}
 			if(x[i]==1){liks[i,2]=1}
+			if(x[i]==2){liks[i,1:2]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -240,6 +244,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		for(i in 1:nb.tip){
 			if(x[i]==0){liks[i,c(1,3)]=1}
 			if(x[i]==1){liks[i,c(2,4)]=1}
+			if(x[i]==2){liks[i,1:4]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -248,6 +253,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		for(i in 1:nb.tip){
 			if(x[i]==0){liks[i,c(1,3,5)]=1}
 			if(x[i]==1){liks[i,c(2,4,6)]=1}
+			if(x[i]==2){liks[i,1:6]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -256,6 +262,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		for(i in 1:nb.tip){
 			if(x[i]==0){liks[i,c(1,3,5,7)]=1}
 			if(x[i]==1){liks[i,c(2,4,6,8)]=1}
+			if(x[i]==2){liks[i,1:8]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -264,6 +271,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		for(i in 1:nb.tip){
 			if(x[i]==0){liks[i,c(1,3,5,7,9)]=1}
 			if(x[i]==1){liks[i,c(2,4,6,8,10)]=1}
+			if(x[i]==2){liks[i,1:10]=1}
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
@@ -315,84 +323,90 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25, "xtol_rel"=.Machine$double.eps^0.25)
 	
-	#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
-	if(is.null(ip)){
-		
-		cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
-		
-		#If the analysis is to be run a single processor:
-		if(is.null(n.cores)){
-			#Sets parameter settings for random restarts by taking the parsimony score and dividing
-			#by the total length of the tree
-			dat<-as.matrix(data)
-			dat<-phyDat(dat,type="USER", levels=c("0","1"))
-			par.score<-parsimony(phy, dat, method="fitch")/2
-			mean = par.score/tl
-			starts<-rexp(np, mean)
-			ip = starts
-			out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
-			#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
-			tmp = matrix(,1,ncol=(1+np))
-			tmp[,1] = -out$objective
-			tmp[,2:(np+1)] = starts
-			write.table(tmp, file="tmp", quote=F, sep="\t", row.name=F, col.name=F,, append=TRUE)
-			for(i in 2:nstarts){
+	if(!is.null(p)){
+		cat("Calculating likelihood from a set of fixed parameters", "\n")
+		out<-NULL
+		out$solution<-p
+		out$objective<-dev(out$solution)
+	}
+	else{	   
+		#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
+		if(is.null(ip)){
+			
+			cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
+			
+			#If the analysis is to be run a single processor:
+			if(is.null(n.cores)){
+				#Sets parameter settings for random restarts by taking the parsimony score and dividing
+				#by the total length of the tree
+				dat<-as.matrix(data)
+				dat<-phyDat(dat,type="USER", levels=c("0","1"))
+				par.score<-parsimony(phy, dat, method="fitch")/2
+				mean = par.score/tl
 				starts<-rexp(np, mean)
-				out.alt = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-				tmp[,1] = -out.alt$objective
+				ip = starts
+				out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
+				#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
+				tmp = matrix(,1,ncol=(1+np))
+				tmp[,1] = out$objective
 				tmp[,2:(np+1)] = starts
-				write.table(tmp, file="tmp", quote=F, sep="\t", row.name=F, col.name=F, append=TRUE)
-				if(-out.alt$objective > -out$objective){
-					out = out.alt
-					ip = starts
+				for(i in 2:nstarts){
+					starts<-rexp(np, mean)
+					out.alt = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+					tmp[,1] = out.alt$objective
+					tmp[,2:(np+1)] = starts
+					if(out.alt$objective < out$objective){
+						out = out.alt
+						ip = starts
+					}
+					else{
+						out = out
+						ip = ip
+					}
 				}
-				else{
-					out = out
-					ip = ip
+			}
+			#If the analysis is to be run on multiple processors:
+			else{
+				#Sets parameter settings for random restarts by taking the parsimony score and dividing
+				#by the total length of the tree
+				dat<-as.matrix(data)
+				dat<-phyDat(dat,type="USER", levels=c("0","1"))
+				par.score<-parsimony(phy, dat, method="fitch")
+				mean = par.score/tl
+				if(mean<0.1){
+					mean=0.1
 				}
+				random.restart<-function(nstarts){
+					tmp = matrix(,1,ncol=(1+np))
+					starts<-rexp(np, mean)
+					out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+					tmp[,1] = out$objective
+					tmp[,2:(np+1)] = out$solution
+					tmp
+				}
+				restart.set<-mclapply(1:nstarts,random.restart, mc.cores=n.cores)
+				#Finds the best fit within the restart.set list
+				best.fit<-which.min(unlist(lapply(1:nstarts,function(i) lapply(restart.set[[i]][,1],min))))
+				#Generates an object to store results from restart algorithm:
+				out<-NULL
+				out$objective=unlist(restart.set[[best.fit]][,1])
+				out$solution=unlist(restart.set[[best.fit]][,2:(np+1)])
 			}
 		}
-		#If the analysis is to be run on multiple processors:
+		#If a user-specified starting value(s) is supplied:
 		else{
-			#Sets the number of cores
-			registerDoMC(n.cores)
-			#Sets parameter settings for random restarts by taking the parsimony score and dividing
-			#by the total length of the tree
-			dat<-as.matrix(data)
-			dat<-phyDat(dat,type="USER", levels=c("0","1"))
-			par.score<-parsimony(phy, dat, method="fitch")/2
-			mean = par.score/tl
-			#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
-			tmp = matrix(,1,ncol=(1+np))
-			foreach(i=1:nstarts)%dopar%{
-				starts<-rexp(np, mean)
-				out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-				tmp[,1] = -out$objective
-				tmp[,2:(np+1)] = starts
-				write.table(tmp, file="tmp", quote=F, sep="\t", row.name=F, col.name=F, append=TRUE)
-			}
-			tmp = read.delim("tmp",h=F)
-			best<-which.max(tmp[,1])
-			ip=unlist(tmp[best,2:(np+1)])
-			names(ip) = NULL
-			#Takes best likelihood and starting values and does proper analysis (unfortunate to be redoing):	
+			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+			ip=ip
 			out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
 		}
 	}
-	#If a user-specified starting value(s) is supplied:
-	else{
-		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-		ip=ip
-		out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-	}
-
+	
+	#Starts the summarization process:
 	cat("Finished. Performing diagnostic tests.", "\n")
-	
-	obj$loglik <- -out$objective
-	
+	obj$loglik <- -out$objective	
 	obj$AIC <- -2*obj$loglik+2*np
 	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
-
+	
 	#Approximates the Hessian using the numDeriv function
 	h <- hessian(x=out$solution, func=dev)
 	#Initiates the summary process
@@ -517,7 +531,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			}			
 		}
 	}
-	#obj$starting.value <- ip
+	
 	obj$iterations <- out$iterations
 	#The eigendecomposition of the Hessian matrix to assess whether or not the function has found the minimum
 	hess.eig <- eigen(h,symmetric=TRUE)
