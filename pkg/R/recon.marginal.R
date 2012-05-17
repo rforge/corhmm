@@ -600,6 +600,11 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 		}
 		comp[focal] <- sum(v)
 		liks[focal, ] <- v/comp[focal]
+		
+	}
+	if(!is.null(root.p)){
+		root <- nb.tip + 1L	
+		liks[root, ]<-root.p
 	}
 	obj$lik.anc.states <- liks[-TIPS, ]
 	
