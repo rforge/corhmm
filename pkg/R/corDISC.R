@@ -19,7 +19,7 @@ require(multicore)
 source("recon.joint.R")
 source("recon.marginal.R")
 
-corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -34,7 +34,6 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 	}
 	#Have to collect this here. When you reorder, the branching time function is not correct:
 	tl<-max(branching.times(phy))
-	
 	#Some initial values for use later - will clean up
 	k=ntraits
 	nl=2
@@ -345,14 +344,12 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 			rate <- model
 			np <- max(rate)
 		}
-		
 		x<-data[,1]
 		y<-data[,2]
 		z<-data[,3]
 		
 		liks <- matrix(0, nb.tip + nb.node, nl^k)
 		TIPS <- 1:nb.tip
-		
 		for(i in 1:nb.tip){
 			if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
 		}
@@ -368,7 +365,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 			if(x[i]==2 & y[i]==2 & z[i]==2){liks[i,1:8]=1}
 		}
 	}
-	
+
 	phy <- reorder(phy, "pruningwise")
 	Q <- matrix(0, nl^k, nl^k)
 	# from Rich FitzJohn - attenuates underflow problems.
@@ -410,7 +407,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 	upper = rep(100, np)
 	
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25, "xtol_rel"=.Machine$double.eps^0.25)
-	
+
 	if(!is.null(p)){
 		cat("Calculating likelihood from a set of fixed parameters", "\n")
 		out<-NULL
@@ -504,7 +501,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,0)","(0,1)","(1,0)","(1,1)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop, par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <-  c("P(0,0)","P(0,1)","P(1,0)","P(1,1)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesDISCRETE.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -514,7 +511,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop=par.drop, par.eq=par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=2, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.DISCRETE.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesDISCRETE.tre", append=TRUE)
@@ -531,7 +528,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 		obj$eigval <- signif(hess.eig$values,2)
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model, par.drop=par.drop, par.eq=par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <-  c("P(0,0,0)","P(1,0,0)","P(0,1,0)","P(0,0,1)","P(1,1,0)","P(1,0,1)","P(0,1,1)","P(1,1,1)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesDISCRETE.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -541,7 +538,7 @@ corDISC<-function(phy,data, model=c("ER","SYM","ARD"), ntraits=2, nstarts=10, n.
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model,par.drop=par.drop, par.eq=par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=FALSE, rate.cat=NULL, ntraits=3, model=model,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.DISCRETE.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesDISCRETE.tre", append=TRUE)

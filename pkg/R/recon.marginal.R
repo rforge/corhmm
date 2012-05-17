@@ -376,7 +376,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
 					rate[rate == 0] <- np + 1
-					print(rate)
 				}
 			} else {
 				if (ncol(model) != nrow(model))

@@ -312,13 +312,14 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 			}
 			#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 			else{				
+				#Interesting development -- must have a non-zero rate in order to properly fix the root!
 				-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
 			}
 		}	
 	}
 	
 	#Sets the bounds on the parameter search:
-	lower = rep(0, np)
+	lower = rep(0.00001, np)
 	upper = rep(100, np)
 	
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25, "xtol_rel"=.Machine$double.eps^0.25)
@@ -403,12 +404,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	
 	#Starts the summarization process:
 	cat("Finished. Performing diagnostic tests.", "\n")
+	
 	obj$loglik <- -out$objective	
 	obj$AIC <- -2*obj$loglik+2*np
 	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
-	
 	#Approximates the Hessian using the numDeriv function
-	h <- hessian(x=out$solution, func=dev)
+#	h <- hessian(x=out$solution, func=dev)
 	#Initiates the summary process
 	if (rate.cat == 1){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
@@ -419,7 +420,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		#Initiates user-specified reconstruction method:
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -429,7 +430,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
 			}
@@ -437,12 +438,12 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	if (rate.cat == 2){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+#		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
+#		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+#		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -452,7 +453,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM2cat.xls", quote=FALSE, row.names=F, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
@@ -466,7 +467,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -476,7 +477,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data),lik.anc$lik.tip.states), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
@@ -490,7 +491,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -500,7 +501,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM4cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
@@ -514,7 +515,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
 				pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -524,7 +525,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 				write.tree(phy, file="AncReconKey.tre")
 			}
 			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop, par.eq, root.p)
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM5cat.xls", row.names=F, quote=FALSE, sep="\t")
 				phy$node.label <- lik.anc$lik.anc.states
 				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)

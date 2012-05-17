@@ -15,11 +15,10 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
-	
 	par.drop=par.drop
 	par.eq=par.eq
 	root.p=root.p
-
+	
 	if(hrm==TRUE){
 		if (rate.cat == 1){
 			rate <- matrix(NA, k*rate.cat, k*rate.cat)
