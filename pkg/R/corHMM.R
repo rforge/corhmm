@@ -409,7 +409,7 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	obj$AIC <- -2*obj$loglik+2*np
 	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
 	#Approximates the Hessian using the numDeriv function
-#	h <- hessian(x=out$solution, func=dev)
+	h <- hessian(x=out$solution, func=dev)
 	#Initiates the summary process
 	if (rate.cat == 1){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
@@ -438,9 +438,9 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	}
 	if (rate.cat == 2){
 		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-#		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-#		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-#		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){		
 				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
