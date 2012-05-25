@@ -24,10 +24,11 @@ require(expm)
 require(corpcor)
 require(phangorn)
 require(multicore)
+require(rgenoud)
 source("recon.joint.R")
 source("recon.marginal.R")
 
-corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("joint", "marginal"), method=c("genoud", "subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -41,21 +42,362 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
-	
+	rate.cat=rate.cat
 	par.drop=par.drop
 	par.eq=par.eq
 	root.p=root.p
+
+	if(method=="genoud"){
+		if(!is.null(p)){
+			cat("Calculating likelihood from a set of fixed parameters", "\n")
+			out<-NULL
+			est.pars<-p
+			model.set.final<-rate.cat.set(phy=phy,data=data,rate.cat=rate.cat,par.drop=par.drop,par.eq=par.eq)
+			out$objective<-dev.corhmm(out$solution,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=model.set.final$root.p)
+		}
+		else{
+			cat("Initializing...", "\n")
+			model.set.init<-rate.cat.set(phy=phy,data=data,rate.cat=1,par.drop=NULL,par.eq=c(1,2))
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			dat<-as.matrix(data)
+			dat<-phyDat(dat,type="USER", levels=c("0","1"))
+			par.score<-parsimony(phy, dat, method="fitch")
+			mean = par.score/tl
+			if(mean<0.1){
+				mean=0.1
+			}
+			ip<-rexp(1, mean)
+			lower = rep(0.00001, model.set.init$np)
+			upper = rep(100, model.set.init$np)
+			init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
+			
+			model.set.final<-rate.cat.set(phy=phy,data=data,rate.cat=rate.cat,par.drop=par.drop,par.eq=par.eq)
+			lower = rep(0.00001, model.set.final$np)
+			upper = rep(100, model.set.final$np)
+			Domains<-cbind(lower,upper)
+			starting.values=rep(init$solution,length.out = model.set.final$np)
+			out<-genoud(fn=dev.corhmm, starting.values=starting.values, nvars=model.set.final$np, print.level=print.level, boundary.enforcement=2, Domains=Domains, wait.generations=50, max.generations=500, pop.size=1000, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+			obj$loglik <- -out$value
+			est.pars<-out$par
+		}
+	}
+
+	if(method=="subplex"){
+		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+		if(!is.null(p)){
+			cat("Calculating likelihood from a set of fixed parameters", "\n")
+			out<-NULL
+			out$solution<-p
+			out$objective<-dev(out$solution)
+			obj$loglik <- -out$objective
+			est.pars<-out$pars
+		}
+		else{	   
+			#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
+			if(is.null(ip)){
+				
+				cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
+				
+				#If the analysis is to be run a single processor:
+				if(is.null(n.cores)){
+					#Sets parameter settings for random restarts by taking the parsimony score and dividing
+					#by the total length of the tree
+					dat<-as.matrix(data)
+					dat<-phyDat(dat,type="USER", levels=c("0","1"))
+					par.score<-parsimony(phy, dat, method="fitch")/2
+					mean = par.score/tl
+					starts<-rexp(np, mean)
+					ip = starts
+					out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
+					#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
+					tmp = matrix(,1,ncol=(1+np))
+					tmp[,1] = out$objective
+					tmp[,2:(np+1)] = starts
+					for(i in 2:nstarts){
+						starts<-rexp(np, mean)
+						out.alt = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+						tmp[,1] = out.alt$objective
+						tmp[,2:(np+1)] = starts
+						if(out.alt$objective < out$objective){
+							out = out.alt
+							ip = starts
+						}
+						else{
+							out = out
+							ip = ip
+						}
+					}
+					obj$loglik <- -out$objective
+					est.pars<-out$solution
+				}
+				#If the analysis is to be run on multiple processors:
+				else{
+					#Sets parameter settings for random restarts by taking the parsimony score and dividing
+					#by the total length of the tree
+					dat<-as.matrix(data)
+					dat<-phyDat(dat,type="USER", levels=c("0","1"))
+					par.score<-parsimony(phy, dat, method="fitch")
+					mean = par.score/tl
+					if(mean<0.1){
+						mean=0.1
+					}
+					random.restart<-function(nstarts){
+						tmp = matrix(,1,ncol=(1+np))
+						starts<-rexp(np, mean)
+						out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+						tmp[,1] = out$objective
+						tmp[,2:(np+1)] = out$solution
+						tmp
+					}
+					restart.set<-mclapply(1:nstarts,random.restart, mc.cores=n.cores)
+					#Finds the best fit within the restart.set list
+					best.fit<-which.min(unlist(lapply(1:nstarts,function(i) lapply(restart.set[[i]][,1],min))))
+					#Generates an object to store results from restart algorithm:
+					out<-NULL
+					out$objective=unlist(restart.set[[best.fit]][,1])
+					out$solution=unlist(restart.set[[best.fit]][,2:(np+1)])
+					obj$loglik <- -out$objective
+					est.pars<-out$solution
+				}
+			}
+			#If a user-specified starting value(s) is supplied:
+			else{
+				cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+				ip=ip
+				out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+				obj$loglik <- -out$objective
+				est.pars<-out$solution
+			}
+		}
+	}
+	#Starts the summarization process:
+	cat("Finished. Performing diagnostic tests.", "\n")
+
+	obj$AIC <- -2*obj$loglik+2*model.set.final$np
+	obj$AICc <- -2*obj$loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1)))
+	#Approximates the Hessian using the numDeriv function
+	print(est.pars)
+	h <- hessian(func=dev.corhmm, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+	#Initiates the summary process
+	if (rate.cat == 1){
+		obj$Param.est<- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0)","(1)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0)","(1)")			
+		#Initiates user-specified reconstruction method:
+		if (is.character(node.states)) {
+			if (node.states == "marginal"){
+				lik.anc <- recon.marginal(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
+				phy$node.label <- pr
+				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
+				phy$node.label <- 1:nb.node
+				write.tree(phy, file="AncReconKey.tre")
+			}
+			if (node.states == "joint"){
+				lik.anc <- recon.joint(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				phy$node.label <- lik.anc$lik.anc.states
+				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
+			}
+		}
+	}
+	if (rate.cat == 2){
+		obj$Param.est<- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		if (is.character(node.states)) {
+			if (node.states == "marginal"){		
+				lik.anc <- recon.marginal(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
+				phy$node.label<-pr
+				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
+				phy$node.label<-1:nb.node
+				write.tree(phy, file="AncReconKey.tre")
+			}
+			if (node.states == "joint"){
+				lik.anc <- recon.joint(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM2cat.xls", quote=FALSE, row.names=F, sep="\t")
+				phy$node.label <- lik.anc$lik.anc.states
+				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
+			}			
+		}
+	}
+	if (rate.cat == 3){
+		obj$Param.est<- matrix(out$solution[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		if (is.character(node.states)) {
+			if (node.states == "marginal"){		
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
+				phy$node.label <- pr
+				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
+				phy$node.label <- 1:nb.node
+				write.tree(phy, file="AncReconKey.tre")
+			}
+			if (node.states == "joint"){
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				write.table(cbind(row.names(data),lik.anc$lik.tip.states), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
+				phy$node.label <- lik.anc$lik.anc.states
+				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
+			}			
+		}
+	}
+	if (rate.cat == 4){
+		obj$Param.est<- matrix(out$solution[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		if (is.character(node.states)) {
+			if (node.states == "marginal"){	
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
+				phy$node.label <- pr
+				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
+				phy$node.label <- 1:nb.node
+				write.tree(phy, file="AncReconKey.tre")
+			}
+			if (node.states == "joint"){
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM4cat.xls", row.names=F, quote=FALSE, sep="\t")
+				phy$node.label <- lik.anc$lik.anc.states
+				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
+			}			
+		}
+	}
+	if (rate.cat == 5){
+		obj$Param.est<- matrix(out$solution[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
+		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		if (is.character(node.states)) {
+			if (node.states == "marginal"){	
+				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
+				pr<-apply(lik.anc$lik.anc.states,1,which.max)
+				phy$node.label <- pr
+				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
+				phy$node.label <- 1:nb.node
+				write.tree(phy, file="AncReconKey.tre")
+			}
+			if (node.states == "joint"){
+				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM5cat.xls", row.names=F, quote=FALSE, sep="\t")
+				phy$node.label <- lik.anc$lik.anc.states
+				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
+			}			
+		}
+	}
 	
+	obj$iterations <- out$iterations
+	#The eigendecomposition of the Hessian matrix to assess whether or not the function has found the minimum
+	hess.eig <- eigen(h,symmetric=TRUE)
+	obj$eigval <- signif(hess.eig$values,2)	
+	#If all the eigenvalues are positive then the function has found the maximum likelihood solution -- eigen ratio might be a good thing to add: 
+	#any parameter with a ratio exceeding 5000 being considered to be not very identifiable?
+	if(any(obj$eigval<0)){
+		obj$diagnostic <- 'The objective function may be at a saddle point -- check eigenvectors'
+		obj$eigvect <- round(hess.eig$vectors, 2)
+		obj$index.matrix <- model.set.final$index.matrix
+	}
+	else{obj$diagnostic<-'Arrived at a reliable solution'}
+	
+	obj
+}
+
+#Generalized ace() function that allows analysis to be carried out when there are polytomies:
+dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
+	
+	nb.tip <- length(phy$tip.label)
+	nb.node <- phy$Nnode
+	TIPS <- 1:nb.tip
+	comp <- numeric(nb.tip + nb.node)
+	phy <- reorder(phy, "pruningwise")
+	#Obtain an object of all the unique ancestors
+	anc <- unique(phy$edge[,1])
+
+	if (any(is.nan(p)) || any(is.infinite(p))) return(1000000)
+	
+	Q[] <- c(p, 0)[rate]
+	diag(Q) <- -rowSums(Q)
+	
+	for (i  in seq(from = 1, length.out = nb.node)) {
+		#the ancestral node at row i is called focal
+		focal <- anc[i]
+		#Get descendant information of focal
+		desRows<-which(phy$edge[,1]==focal)
+		desNodes<-phy$edge[desRows,2]
+		v <- 1
+		#Loops through all descendants of focal (how we deal with polytomies):
+		for (desIndex in sequence(length(desRows))){
+			v<-v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+		}
+		#Sum the likelihoods:
+		comp[focal] <- sum(v)
+		#Divide each likelihood by the sum to obtain probabilities:
+		liks[focal, ] <- v/comp[focal]
+	}
+	#Specifies the root:
+	root <- nb.tip + 1L
+	#If any of the logs have NAs restart search:
+	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
+	else{
+		if (is.null(root.p)){
+			-sum(log(comp[-TIPS]))
+		}
+		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
+		else{				
+			#Interesting development -- must have a non-zero rate in order to properly fix the root!
+			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+		}
+	}	
+}
+
+rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
+	
+	k=2
+	obj <- NULL
+	nb.tip <- length(phy$tip.label)
+	nb.node <- phy$Nnode
+	obj$rate.cat<-rate.cat
 	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
 	#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if (rate.cat == 1){
 		rate <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- 2
-		
 		index<-matrix(TRUE,k*rate.cat,k*rate.cat)
 		diag(index) <- FALSE
 		rate[index] <- 1:np
+		#If par.eq is not null then pairs of parameters are set equal to each other.
+		if(!is.null(par.eq)==TRUE){
+			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+				j<-i+1
+				tmp3 <- which(rate==par.eq[j], arr.ind=T)
+				index[tmp3] <- FALSE
+				rate[tmp3] <- 0
+				np <- np-1
+				rate[index] <- 1:np
+				rate[tmp3] <- par.eq[i]
+			}
+		}
 		index.matrix <- rate
+		index.matrix[index.matrix == 0] = NA		
 		
 		diag(rate)<-0
 		rate[rate == 0] <- np + 1
@@ -275,277 +617,15 @@ corHMM<-function(phy, data, rate.cat, nstarts=10, n.cores=NULL, node.states=c("j
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
-	phy <- reorder(phy, "pruningwise")
-	comp <- numeric(nb.tip + nb.node)
-	#Obtain an object of all the unique ancestors
-	anc <- unique(phy$edge[,1])
-	#Generalized ace() function that allows analysis to be carried out when there are polytomies:
-	dev <- function(p) {
-		if (any(is.nan(p)) || any(is.infinite(p))) return(1000000)
-		
-		Q[] <- c(p, 0)[rate]
-		diag(Q) <- -rowSums(Q)
-		
-		for (i  in seq(from = 1, length.out = nb.node)) {
-			#the ancestral node at row i is called focal
-			focal <- anc[i]
-			#Get descendant information of focal
-			desRows<-which(phy$edge[,1]==focal)
-			desNodes<-phy$edge[desRows,2]
-			v <- 1
-			#Loops through all descendants of focal (how we deal with polytomies):
-			for (desIndex in sequence(length(desRows))){
-				v<-v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
-			}
-			#Sum the likelihoods:
-			comp[focal] <- sum(v)
-			#Divide each likelihood by the sum to obtain probabilities:
-			liks[focal, ] <- v/comp[focal]
-		}
-		#Specifies the root:
-		root <- nb.tip + 1L
-		#If any of the logs have NAs restart search:
-		if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
-		else{
-			if (is.null(root.p)){
-				-sum(log(comp[-TIPS]))
-			}
-			#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
-			else{				
-				#Interesting development -- must have a non-zero rate in order to properly fix the root!
-				-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
-			}
-		}	
-	}
-	
-	#Sets the bounds on the parameter search:
-	lower = rep(0.00001, np)
-	upper = rep(100, np)
-	
-	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25, "xtol_rel"=.Machine$double.eps^0.25)
-	
-	if(!is.null(p)){
-		cat("Calculating likelihood from a set of fixed parameters", "\n")
-		out<-NULL
-		out$solution<-p
-		out$objective<-dev(out$solution)
-	}
-	else{	   
-		#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
-		if(is.null(ip)){
-			
-			cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
-			
-			#If the analysis is to be run a single processor:
-			if(is.null(n.cores)){
-				#Sets parameter settings for random restarts by taking the parsimony score and dividing
-				#by the total length of the tree
-				dat<-as.matrix(data)
-				dat<-phyDat(dat,type="USER", levels=c("0","1"))
-				par.score<-parsimony(phy, dat, method="fitch")/2
-				mean = par.score/tl
-				starts<-rexp(np, mean)
-				ip = starts
-				out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)			
-				#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
-				tmp = matrix(,1,ncol=(1+np))
-				tmp[,1] = out$objective
-				tmp[,2:(np+1)] = starts
-				for(i in 2:nstarts){
-					starts<-rexp(np, mean)
-					out.alt = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-					tmp[,1] = out.alt$objective
-					tmp[,2:(np+1)] = starts
-					if(out.alt$objective < out$objective){
-						out = out.alt
-						ip = starts
-					}
-					else{
-						out = out
-						ip = ip
-					}
-				}
-			}
-			#If the analysis is to be run on multiple processors:
-			else{
-				#Sets parameter settings for random restarts by taking the parsimony score and dividing
-				#by the total length of the tree
-				dat<-as.matrix(data)
-				dat<-phyDat(dat,type="USER", levels=c("0","1"))
-				par.score<-parsimony(phy, dat, method="fitch")
-				mean = par.score/tl
-				if(mean<0.1){
-					mean=0.1
-				}
-				random.restart<-function(nstarts){
-					tmp = matrix(,1,ncol=(1+np))
-					starts<-rexp(np, mean)
-					out = nloptr(x0=rep(starts, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-					tmp[,1] = out$objective
-					tmp[,2:(np+1)] = out$solution
-					tmp
-				}
-				restart.set<-mclapply(1:nstarts,random.restart, mc.cores=n.cores)
-				#Finds the best fit within the restart.set list
-				best.fit<-which.min(unlist(lapply(1:nstarts,function(i) lapply(restart.set[[i]][,1],min))))
-				#Generates an object to store results from restart algorithm:
-				out<-NULL
-				out$objective=unlist(restart.set[[best.fit]][,1])
-				out$solution=unlist(restart.set[[best.fit]][,2:(np+1)])
-			}
-		}
-		#If a user-specified starting value(s) is supplied:
-		else{
-			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-			ip=ip
-			out = nloptr(x0=rep(ip, length.out = np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-		}
-	}
-	
-	#Starts the summarization process:
-	cat("Finished. Performing diagnostic tests.", "\n")
-	
-	obj$loglik <- -out$objective	
-	obj$AIC <- -2*obj$loglik+2*np
-	obj$AICc <- -2*obj$loglik+(2*np*(nb.tip/(nb.tip-np-1)))
-	#Approximates the Hessian using the numDeriv function
-	h <- hessian(x=out$solution, func=dev)
-	#Initiates the summary process
-	if (rate.cat == 1){
-		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-		#Calculates the standard error of the parameter by taking the sqrt of diagonal of the inverse of the Hessian: 
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0)","(1)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0)","(1)")			
-		#Initiates user-specified reconstruction method:
-		if (is.character(node.states)) {
-			if (node.states == "marginal"){
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
-				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM1cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$lik.anc.states,1,which.max)
-				phy$node.label <- pr
-				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
-				phy$node.label <- 1:nb.node
-				write.tree(phy, file="AncReconKey.tre")
-			}
-			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				phy$node.label <- lik.anc$lik.anc.states
-				write.tree(phy, file="AncReconStatesHMM1cat.tre", append=TRUE)
-			}
-		}
-	}
-	if (rate.cat == 2){
-		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-		if (is.character(node.states)) {
-			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
-				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM2cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$lik.anc.states,1,which.max)
-				phy$node.label<-pr
-				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
-				phy$node.label<-1:nb.node
-				write.tree(phy, file="AncReconKey.tre")
-			}
-			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM2cat.xls", quote=FALSE, row.names=F, sep="\t")
-				phy$node.label <- lik.anc$lik.anc.states
-				write.tree(phy, file="AncReconStatesHMM2cat.tre", append=TRUE)
-			}			
-		}
-	}
-	if (rate.cat == 3){
-		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
-		if (is.character(node.states)) {
-			if (node.states == "marginal"){		
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
-				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM3cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$lik.anc.states,1,which.max)
-				phy$node.label <- pr
-				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
-				phy$node.label <- 1:nb.node
-				write.tree(phy, file="AncReconKey.tre")
-			}
-			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				write.table(cbind(row.names(data),lik.anc$lik.tip.states), file="Tipstates.HMM3cat.xls", row.names=F, quote=FALSE, sep="\t")
-				phy$node.label <- lik.anc$lik.anc.states
-				write.tree(phy, file="AncReconStatesHMM3cat.tre", append=TRUE)
-			}			
-		}
-	}
-	if (rate.cat == 4){
-		obj$Param.est <- matrix(out$solution[index.matrix], dim(index.matrix))
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
-		if (is.character(node.states)) {
-			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
-				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM4cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$lik.anc.states,1,which.max)
-				phy$node.label <- pr
-				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
-				phy$node.label <- 1:nb.node
-				write.tree(phy, file="AncReconKey.tre")
-			}
-			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM4cat.xls", row.names=F, quote=FALSE, sep="\t")
-				phy$node.label <- lik.anc$lik.anc.states
-				write.tree(phy, file="AncReconStatesHMM4cat.tre", append=TRUE)
-			}			
-		}
-	}
-	if (rate.cat == 5){
-		obj$Param.est<- matrix(out$solution[index.matrix], dim(index.matrix))
-		obj$Param.SE <- matrix(sqrt(diag(pseudoinverse(h)))[index.matrix], dim(index.matrix))
-		rownames(obj$Param.est) <- rownames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
-		colnames(obj$Param.est) <- colnames(obj$Param.SE) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
-		if (is.character(node.states)) {
-			if (node.states == "marginal"){	
-				lik.anc <- recon.marginal(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
-				write.table(lik.anc$lik.anc.states, file="Anc.EstimatesHMM5cat.xls", quote=FALSE, sep="\t")
-				pr<-apply(lik.anc$lik.anc.states,1,which.max)
-				phy$node.label <- pr
-				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
-				phy$node.label <- 1:nb.node
-				write.tree(phy, file="AncReconKey.tre")
-			}
-			if (node.states == "joint"){
-				lik.anc <- recon.joint(phy, data, out$solution, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-				write.table(cbind(row.names(data), lik.anc$lik.tip.states), file="Tipstates.HMM5cat.xls", row.names=F, quote=FALSE, sep="\t")
-				phy$node.label <- lik.anc$lik.anc.states
-				write.tree(phy, file="AncReconStatesHMM5cat.tre", append=TRUE)
-			}			
-		}
-	}
-	
-	obj$iterations <- out$iterations
-	#The eigendecomposition of the Hessian matrix to assess whether or not the function has found the minimum
-	hess.eig <- eigen(h,symmetric=TRUE)
-	obj$eigval <- signif(hess.eig$values,2)	
-	#If all the eigenvalues are positive then the function has found the maximum likelihood solution -- eigen ratio might be a good thing to add: 
-	#any parameter with a ratio exceeding 5000 being considered to be not very identifiable?
-	if(any(obj$eigval<0)){
-		obj$diagnostic <- 'The objective function may be at a saddle point -- check eigenvectors'
-		obj$eigvect <- round(hess.eig$vectors, 2)
-		obj$index.matrix <- index.matrix
-	}
-	else{obj$diagnostic<-'Arrived at a reliable solution'}
+	obj$np<-np
+	obj$rate<-rate
+	obj$index.matrix<-index.matrix
+	obj$liks<-liks
+	obj$Q<-Q
 	
 	obj
 }
+
+
+
 
