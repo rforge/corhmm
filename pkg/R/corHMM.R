@@ -98,9 +98,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method
 		else{	   
 			#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
 			if(is.null(ip)){
-				
 				cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
-				
 				#If the analysis is to be run a single processor:
 				if(is.null(n.cores)){
 					#Sets parameter settings for random restarts by taking the parsimony score and dividing
