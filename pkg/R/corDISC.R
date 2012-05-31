@@ -59,9 +59,9 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		cat("Calculating likelihood from a set of fixed parameters", "\n")
 		out<-NULL
 		out$solution<-p
-		out$objective<-dev(out$solution)
+		out$objective<-dev.cordisc(out$solution,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 		loglik <- -out$objective
-		est.pars<-out$pars
+		est.pars<-out$solution
 	}
 	else{	   
 		if(is.null(ip)){
@@ -184,7 +184,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
-	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits,solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
+	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"cordisc"
 	return(obj)
 }

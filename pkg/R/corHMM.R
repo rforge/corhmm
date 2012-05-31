@@ -58,7 +58,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method
 			cat("Calculating likelihood from a set of fixed parameters", "\n")
 			out<-NULL
 			est.pars<-p
-			out$objective<-dev.corhmm(out$solution,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=model.set.final$root.p)
+			out$objective<-dev.corhmm(est.pars,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=model.set.final$root.p)
 		}
 		else{
 			cat("Initializing...", "\n")
@@ -91,9 +91,9 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method
 			cat("Calculating likelihood from a set of fixed parameters", "\n")
 			out<-NULL
 			out$solution<-p
-			out$objective<-dev(out$solution)
+			out$objective<-dev.corhmm(out$solution,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=model.set.final$root.p)
 			loglik <- -out$objective
-			est.pars<-out$pars
+			est.pars<-out$solution
 		}
 		else{	   
 			#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
