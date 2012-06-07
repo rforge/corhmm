@@ -174,12 +174,11 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method
 
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
-	
+
 	if (node.states == "marginal"){
 		lik.anc <- recon.marginal(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		phy$node.label <- 1:nb.node
 		tip.states <- NULL
 	}
 	if (node.states == "joint"){

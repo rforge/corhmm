@@ -27,8 +27,17 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			index<-matrix(TRUE,k*rate.cat,k*rate.cat)
 			diag(index) <- FALSE
 			rate[index] <- 1:np
-			index.matrix <- rate
-			
+			if(!is.null(par.eq)==TRUE){
+				for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+					j<-i+1
+					tmp3 <- which(rate==par.eq[j], arr.ind=T)
+					index[tmp3] <- FALSE
+					rate[tmp3] <- 0
+					np <- np-1
+					rate[index] <- 1:np
+					rate[tmp3] <- par.eq[i]
+				}
+			}			
 			diag(rate)<-0
 			rate[rate == 0] <- np + 1
 		}

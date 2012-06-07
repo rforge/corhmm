@@ -147,7 +147,6 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		lik.anc <- recon.marginal(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		phy$node.label <- 1:nb.node
 		tip.states <- NULL
 	}
 	if (node.states == "joint"){
