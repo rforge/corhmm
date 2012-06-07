@@ -617,13 +617,13 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 		if(length(tz)==0){
 			#The focal node is the root, calculate P_k:
 			if(is.null(root.p)){
-				root.p=1
+				root.state=1
 				for (desIndex in sequence(length(desRows))){
 					#This is the basic marginal calculation:
-					root.p <- root.p * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+					root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 				}
 				#Divide by the sum of the liks to deal with underflow issues:
-				liks[focal, ] <- root.p/sum(root.p)
+				liks[focal, ] <- root.state/sum(root.state)
 			}
 			else{
 				liks[focal, ] <- root.p
@@ -673,6 +673,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			lik.states[des] <- comp[des,tmp]
 		}
 	}
+	print(cbind(liks[-TIPS,],comp[-TIPS,]))
 	#Outputs likeliest tip states
 	obj$lik.tip.states <- lik.states[TIPS]
 	#Outputs likeliest node states
