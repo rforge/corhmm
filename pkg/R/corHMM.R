@@ -26,7 +26,7 @@ require(phangorn)
 require(multicore)
 require(rgenoud)
 source("recon.joint.R")
-source("recon.marginal.R")
+source("recon.marginal.2.R")
 
 corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method=c("genoud", "subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL){
 	

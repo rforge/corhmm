@@ -2,9 +2,10 @@
 
 #written by Jeremy M. Beaulieu
 
-#Algorithm is based on ace(), though trees do not need to be bifurcating. Also, the code is written
-#so that it can be used as a separate function from corHMM. All that is required is a tree, trait, and a vector
-#of estimated parameter values and the user is provided the marginal ancestral reconstruction.
+#Algorithm is based on Yang (2006), and trees do not need to be bifurcating. The basic idea is that the tree is rerooted
+#on each internal node, with marginal likelihood the probabilities at the root. Also, the code is written so that it can 
+#be used as a separate function from corHMM. All that is required is a tree, trait, and a vector of estimated parameter 
+#values and the user is provided the marginal ancestral reconstruction.
 
 recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
@@ -349,7 +350,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 					rate[tmp2] <- 0
 					rate[rate == 0] <- np + 1
 				}
-				
 				if (model == "ARD") {
 					np <- 8
 					tmp <- cbind(1:(nl^k), (nl^k):1)
@@ -571,7 +571,7 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 			
 			liks <- matrix(0, nb.tip + nb.node, nl^k)
 			TIPS <- 1:nb.tip
-
+			
 			for(i in 1:nb.tip){
 				if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
 			}
@@ -589,36 +589,46 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 			Q <- matrix(0, nl^k, nl^k)
 		}
 	}
-
-	phy <- reorder(phy, "pruningwise")
-	#Number of columns should be equal to the number of states.
-	comp <- numeric(nb.tip + nb.node)
-	lik.states<-numeric(nb.tip + nb.node)
-	TIPS <- 1:nb.tip
-	anc <- unique(phy$edge[,1])
+	
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
 	
-	#The same algorithm as in the main function. See comments in corHMM.R for details:
-	for (i  in seq(from = 1, length.out = nb.node)) {
-		#the ancestral node at row i is called focal
-		focal <- anc[i]
-		#Get descendant information of focal
-		desRows<-which(phy$edge[,1]==focal)
-		desNodes<-phy$edge[desRows,2]
-		v <- 1
-		for (desIndex in sequence(length(desRows))){
-			v <- v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+	##First obtain the total likelihood of the model by running on the real root:
+	liks.final<-liks
+	
+	for(j in seq(from = nb.tip + 1L, length.out=nb.node)){
+		#Reroot on node j:
+		phy2 <- root(phy,node=j)
+		#Reorder as usual:
+		phy2 <- reorder(phy2, "pruningwise")
+		comp <- numeric(nb.tip + nb.node)
+		#lik.states<-numeric(nb.tip + nb.node)
+		TIPS <- 1:nb.tip
+		anc <- unique(phy2$edge[,1])
+		#A temporary likelihood matrix so that the original does not get written over:
+		liks.tmp<-liks
+		#The same algorithm as in the main function. See comments in corHMM.R for details:
+		for (i  in seq(from = 1, length.out = nb.node)) {
+			#the ancestral node at row i is called focal
+			focal <- anc[i]
+			#Get descendant information of focal
+			desRows<-which(phy2$edge[,1]==focal)
+			desNodes<-phy2$edge[desRows,2]
+			v <- 1
+			for (desIndex in sequence(length(desRows))){
+				v <- v*expm(Q * phy2$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks.tmp[desNodes[desIndex],]
+			}
+			comp[focal] <- sum(v)
+			liks.tmp[focal, ] <- v/comp[focal]
 		}
-		comp[focal] <- sum(v)
-		liks[focal, ] <- v/comp[focal]
-		
+		root <- nb.tip + 1L
+		if(!is.null(root.p)){
+			root <- nb.tip + 1L	
+			liks.tmp[root, ]<-root.p
+		}
+		liks.final[j,]<-liks.tmp[root,]
 	}
-	if(!is.null(root.p)){
-		root <- nb.tip + 1L	
-		liks[root, ]<-root.p
-	}
-	obj$lik.anc.states <- liks[-TIPS, ]
+	obj$lik.anc.states <- liks.final[-TIPS, ]
 	
 	obj
 }
