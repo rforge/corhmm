@@ -1,11 +1,12 @@
-#MARGINAL RECONSTRUCTION OF ANCESTRAL STATE
+#MARGINAL RECONSTRUCTION OF ANCESTRAL STATES
 
 #written by Jeremy M. Beaulieu
 
 #Algorithm is based on Yang (2006), and trees do not need to be bifurcating. The basic idea is that the tree is rerooted
-#on each internal node, with marginal likelihood the probabilities at the root. Also, the code is written so that it can 
-#be used as a separate function from corHMM. All that is required is a tree, trait, and a vector of estimated parameter 
-#values and the user is provided the marginal ancestral reconstruction.
+#on each internal node, with the marginal likelihood being the probabilities of observing the tips states given that the
+#the focal node is the root. Also, the code is written so that it can  be used as a separate function from corHMM. All 
+#that is required is a tree, trait, and a vector of estimated parameter values and the user is provided the marginal ancestral 
+#reconstruction.
 
 recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
@@ -595,8 +596,9 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 	
 	#Rename liks matrix so that the original data is not written over:
 	liks.final<-liks
-	
+
 	for(j in seq(from = nb.tip + 1L, length.out=nb.node)){
+
 		#Rename phy and reroot on node j:
 		phy.tmp <- root(phy,node=j)
 		#Reorder as usual:

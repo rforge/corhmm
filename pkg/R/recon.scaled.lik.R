@@ -598,7 +598,6 @@ recon.scaled.lik <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, mod
 	anc <- unique(phy$edge[,1])
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
-	print(Q)
 	#The same algorithm as in the main function. See comments in corHMM.R for details:
 	for (i  in seq(from = 1, length.out = nb.node)) {
 		#the ancestral node at row i is called focal
