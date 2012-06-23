@@ -1,12 +1,12 @@
-#JOINT RECONSTRUCTION OF ANCESTRAL STATES
+#SCALED LIKELIHOODS OF ANCESTRAL STATES
 
 #written by Jeremy M. Beaulieu
 
-#Algorithm is based on Pupko et al (2000). Trees do not need to be bifurcating. Also, the code is written
+#Algorithm is based on the scale likelihoods from ace(), though trees do not need to be bifurcating. Also, the code is written
 #so that it can be used as a separate function from corHMM. All that is required is a tree, trait, and a vector
-#of estimated parameter values and the user is provided the joint ancestral reconstruction.
+#of estimated parameter values and the user is provided the marginal ancestral reconstruction.
 
-recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL, root.p=NULL){
+recon.scaled.lik <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
 	#Note: Does not like zero branches at the tips. Here I extend these branches by just a bit:
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -15,10 +15,13 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
+	
 	par.drop=par.drop
 	par.eq=par.eq
 	root.p=root.p
 	
+	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
+	#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if(hrm==TRUE){
 		if (rate.cat == 1){
 			rate <- matrix(NA, k*rate.cat, k*rate.cat)
@@ -37,7 +40,10 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 					rate[index] <- 1:np
 					rate[tmp3] <- par.eq[i]
 				}
-			}			
+			}
+			index.matrix <- rate
+			index.matrix[index.matrix == 0] = NA
+			
 			diag(rate)<-0
 			rate[rate == 0] <- np + 1
 		}
@@ -382,7 +388,6 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
 					rate[rate == 0] <- np + 1
-
 				}
 			} else {
 				if (ncol(model) != nrow(model))
@@ -455,8 +460,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 						}
 					}
 					index.matrix <- rate
-					index.matrix[index.matrix == 0] = NA
-					
+					index.matrix[index.matrix == 0] = NA					
 					
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
@@ -544,7 +548,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 						}
 					}
 					index.matrix <- rate
-					index.matrix[index.matrix == 0] = NA
+					index.matrix[index.matrix == 0] = NA					
 					
 					rate[tmp] <- 0
 					rate[tmp2] <- 0
@@ -567,7 +571,7 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			
 			liks <- matrix(0, nb.tip + nb.node, nl^k)
 			TIPS <- 1:nb.tip
-			
+
 			for(i in 1:nb.tip){
 				if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
 			}
@@ -585,99 +589,38 @@ recon.joint <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c(
 			Q <- matrix(0, nl^k, nl^k)
 		}
 	}
+
 	phy <- reorder(phy, "pruningwise")
 	#Number of columns should be equal to the number of states.
-	comp<-matrix(0,nb.tip + nb.node,ncol(liks))
+	comp <- numeric(nb.tip + nb.node)
 	lik.states<-numeric(nb.tip + nb.node)
 	TIPS <- 1:nb.tip
 	anc <- unique(phy$edge[,1])
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
-
+	print(Q)
+	#The same algorithm as in the main function. See comments in corHMM.R for details:
 	for (i  in seq(from = 1, length.out = nb.node)) {
-		#The ancestral node at row i is called focal:
+		#the ancestral node at row i is called focal
 		focal <- anc[i]
-		#Get descendant information of focal:
+		#Get descendant information of focal
 		desRows<-which(phy$edge[,1]==focal)
-		#Get node information for each descendant:
 		desNodes<-phy$edge[desRows,2]
-		#Initiates a loop to check if any nodes are tips:
+		v <- 1
 		for (desIndex in sequence(length(desRows))){
-			#If a tip calculate C_y(i) for the tips and stores in liks matrix:
-			if(any(desNodes[desIndex]==phy$edge[,1])==FALSE){
-				liks[desNodes[desIndex],] <- expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
-				#Divide by the sum of the liks to deal with underflow issues:
-				liks[desNodes[desIndex],] <- liks[desNodes[desIndex],]/sum(liks[desNodes[desIndex],])
-				#Collects the likeliest state at the tips:
-				comp[desNodes[desIndex],] <- which.max(liks[desNodes[desIndex],])
-			}
+			v <- v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 		}
-		#Collects t_z, or the branch subtending focal:
-		tz<-phy$edge.length[which(phy$edge[,2] == focal)]	
-		if(length(tz)==0){
-			#The focal node is the root, calculate P_k:
-			if(is.null(root.p)){
-				root.state=1
-				for (desIndex in sequence(length(desRows))){
-					#This is the basic marginal calculation:
-					root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
-				}
-				#Divide by the sum of the liks to deal with underflow issues:
-				liks[focal, ] <- root.state/sum(root.state)
-			}
-			else{
-				liks[focal, ] <- root.p
-			}
-		}
-		else{
-			#Calculates P_ij(t_z):
-			Pij <- expm(Q * tz, method=c("Ward77"))
-			#Calculates L_z(i):
-			if(hrm==TRUE){
-			v<-c(rep(1, k*rate.cat))
-			}
-			if(hrm==FALSE){
-				v<-c(rep(1, nl^k))
-			}
-			for (desIndex in sequence(length(desRows))){
-				v = v * liks[desNodes[desIndex],]
-			}
-			#Finishes L_z(i):
-			L <- t(Pij) * v
-			#Collects which is the highest likelihood and which state it corresponds to:
-			liks[focal,] <- apply(L, 2, max)
-			comp[focal,] <- apply(L, 2, which.max)
-			#Divide by the sum of the liks to deal with underflow issues:
-			liks[focal,] <- liks[focal,]/sum(liks[focal,])
-		}
+		comp[focal] <- sum(v)
+		liks[focal, ] <- v/comp[focal]
+		
 	}
-	#If the state at the root is not specified root will just be the joint estimate:
-	if (is.null(root.p)){
-		root <- nb.tip + 1L
-		lik.states[root] <- which.max(liks[root,])
-		N <- dim(phy$edge)[1]
-		for(i in N:1){
-			des <- phy$edge[i,2]
-			tmp <- which.max(liks[des,])
-			lik.states[des] <- comp[des,tmp]
-		}
+	if(!is.null(root.p)){
+		root <- nb.tip + 1L	
+		liks[root, ]<-root.p
 	}
-	#If the state at the root is specified then will start up-pass based on the maximum of the user-defined root probabilities:
-	else{
-		root <- nb.tip + 1L
-		lik.states[root] <- which.max(root.p)
-		N <- dim(phy$edge)[1]
-		for(i in N:1){
-			des <- phy$edge[i,2]
-			tmp <- which.max(liks[des,])
-			lik.states[des] <- comp[des,tmp]
-		}
-	}
-	#Outputs likeliest tip states
-	obj$lik.tip.states <- lik.states[TIPS]
-	#Outputs likeliest node states
-	obj$lik.anc.states <- lik.states[-TIPS]
+	obj$lik.anc.states <- liks[-TIPS, ]
 	
 	obj
 }
+
 

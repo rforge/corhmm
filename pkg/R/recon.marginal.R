@@ -593,18 +593,17 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
 	
-	##First obtain the total likelihood of the model by running on the real root:
+	#Rename liks matrix so that the original data is not written over:
 	liks.final<-liks
 	
 	for(j in seq(from = nb.tip + 1L, length.out=nb.node)){
-		#Reroot on node j:
-		phy2 <- root(phy,node=j)
+		#Rename phy and reroot on node j:
+		phy.tmp <- root(phy,node=j)
 		#Reorder as usual:
-		phy2 <- reorder(phy2, "pruningwise")
+		phy.tmp <- reorder(phy.tmp, "pruningwise")
 		comp <- numeric(nb.tip + nb.node)
-		#lik.states<-numeric(nb.tip + nb.node)
 		TIPS <- 1:nb.tip
-		anc <- unique(phy2$edge[,1])
+		anc <- unique(phy.tmp$edge[,1])
 		#A temporary likelihood matrix so that the original does not get written over:
 		liks.tmp<-liks
 		#The same algorithm as in the main function. See comments in corHMM.R for details:
@@ -612,11 +611,11 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 			#the ancestral node at row i is called focal
 			focal <- anc[i]
 			#Get descendant information of focal
-			desRows<-which(phy2$edge[,1]==focal)
-			desNodes<-phy2$edge[desRows,2]
+			desRows<-which(phy.tmp$edge[,1]==focal)
+			desNodes<-phy.tmp$edge[desRows,2]
 			v <- 1
 			for (desIndex in sequence(length(desRows))){
-				v <- v*expm(Q * phy2$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks.tmp[desNodes[desIndex],]
+				v <- v*expm(Q * phy.tmp$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks.tmp[desNodes[desIndex],]
 			}
 			comp[focal] <- sum(v)
 			liks.tmp[focal, ] <- v/comp[focal]

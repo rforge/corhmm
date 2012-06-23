@@ -18,8 +18,9 @@ require(phangorn)
 require(multicore)
 source("recon.joint.R")
 source("recon.marginal.R")
+source("recon.scaled.lik.R")
 
-corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -153,6 +154,12 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		lik.anc <- recon.joint(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
+	}
+	if (node.states == "scaled"){
+		lik.anc <- recon.scaled.lik(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		pr<-apply(lik.anc$lik.anc.states,1,which.max)
+		phy$node.label <- pr
+		tip.states <- NULL
 	}
 	
 	cat("Finished. Performing diagnostic tests.", "\n")

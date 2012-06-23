@@ -26,9 +26,10 @@ require(phangorn)
 require(multicore)
 require(rgenoud)
 source("recon.joint.R")
-source("recon.marginal.2.R")
+source("recon.marginal.R")
+source("recon.scaled.lik.R")
 
-corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method=c("genoud", "subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL){
+corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), method=c("genoud", "subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -186,7 +187,13 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal"), method
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
-	
+	if (node.states == "scaled"){
+		lik.anc <- recon.scaled.lik(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		pr<-apply(lik.anc$lik.anc.states,1,which.max)
+		phy$node.label <- pr
+		tip.states <- NULL
+	}
+
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
 	#Approximates the Hessian using the numDeriv function
