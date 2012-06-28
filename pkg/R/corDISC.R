@@ -150,12 +150,6 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		phy$node.label <- pr
 		tip.states <- NULL
 	}	
-	
-	colnames(lik.anc$lik.anc.states) <-  c("P(0,0,0)","P(1,0,0)","P(0,1,0)","P(0,0,1)","P(1,1,0)","P(1,0,1)","P(0,1,1)","P(1,1,1)")
-	write.table(lik.anc$lik.anc.states,file="margin.prob.xls",quote=F,sep="\t")
-	write.tree(phy,file="margin.tre")
-	
-	
 	if (node.states == "joint"){
 		lik.anc <- recon.joint(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
