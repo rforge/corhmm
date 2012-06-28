@@ -228,7 +228,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1){liks[i,2]=1}
 				if(x[i]==2){liks[i,1:2]=1}
 			}
-			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
 		if (rate.cat == 2){
 			liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
@@ -237,7 +236,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1){liks[i,c(2,4)]=1}
 				if(x[i]==2){liks[i,1:4]=1}
 			}
-			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
 		if (rate.cat == 3){
 			liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
@@ -246,7 +244,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1){liks[i,c(2,4,6)]=1}
 				if(x[i]==2){liks[i,1:6]=1}
 			}
-			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
 		if (rate.cat == 4){
 			liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
@@ -255,7 +252,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1){liks[i,c(2,4,6,8)]=1}
 				if(x[i]==2){liks[i,1:8]=1}
 			}
-			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
 		if (rate.cat == 5){
 			liks <- matrix(0, nb.tip + nb.node, k*rate.cat)
@@ -264,8 +260,9 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1){liks[i,c(2,4,6,8,10)]=1}
 				if(x[i]==2){liks[i,1:10]=1}
 			}
-			Q <- matrix(0, k*rate.cat, k*rate.cat)
 		}
+		Q <- matrix(0, k*rate.cat, k*rate.cat)
+		tranQ <- matrix(0,  k*rate.cat, k*rate.cat)
 	}
 	if(hrm==FALSE){
 		if(ntraits==2){
@@ -418,7 +415,6 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1 & y[i]==1){liks[i,4]=1}
 				if(x[i]==2 & y[i]==2){liks[i,1:4]=1}
 			}
-			Q <- matrix(0, nl^k, nl^k)
 		}
 		if(ntraits==3){
 			k=3
@@ -589,8 +585,9 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				if(x[i]==1 & y[i]==1 & z[i]==1){liks[i,8]=1}
 				if(x[i]==2 & y[i]==2 & z[i]==2){liks[i,1:8]=1}
 			}
-			Q <- matrix(0, nl^k, nl^k)
 		}
+		Q <- matrix(0, nl^k, nl^k)
+		tranQ <- matrix(0, nl^k, nl^k)
 	}
 	
 	Q[] <- c(p, 0)[rate]
@@ -646,7 +643,10 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 			#If the mother is not the root then you are calculating the probability of the being in either state.
 			#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
 			if(motherNode!=root){
-				v <- expm(t(Q) * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
+				tranQ[] <- c(p, 0)[rate]
+				tranQ<-t(tranQ)
+				diag(tranQ) <- -rowSums(tranQ)
+				v <- expm(tranQ * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
 			}
 			#If the mother is the root then just use the marginal. This can also be the prior, which I think is the equilibrium frequency. 
 			#But for now we are just going to use the marginal at the root.
@@ -654,10 +654,9 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				v <- liks.down[root,]
 			}
 			#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
-			#This is essentially calculating the product of the mothers probability and the sisters probability. Again, note we are assessing 
-			#the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
+			#This is essentially calculating the product of the mothers probability and the sisters probability:
 			for (sisterIndex in sequence(length(sisterRows))){
-				v <- v*expm(t(Q) * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
+				v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
 			}
 			comp[focal] <- sum(v)
 			liks.up[focal,] <- v/comp[focal]
@@ -673,7 +672,10 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 		desRows<-which(phy$edge[,2]==focal)
 		#Now you are asessing the change along the branch subtending the focal by multiplying the probability of 
 		#everything at and above focal by the probability of the mother and all the sisters given time t:
-		v <- liks.down[focal,]*expm(Q * phy$edge.length[desRows], method=c("Ward77")) %*% liks.up[focal,]
+		tranQ[] <- c(p, 0)[rate]
+		tranQ<-t(tranQ)
+		diag(tranQ) <- -rowSums(tranQ)
+		v <- liks.down[focal,]*expm(tranQ * phy$edge.length[desRows], method=c("Ward77")) %*% liks.up[focal,]
 		comp[focal] <- sum(v)
 		liks.final[focal, ] <- v/comp[focal]
 	}
