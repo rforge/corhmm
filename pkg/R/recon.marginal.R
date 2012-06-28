@@ -2,11 +2,13 @@
 
 #written by Jeremy M. Beaulieu
 
-#Algorithm is based on Yang (2006), and trees do not need to be bifurcating. The basic idea is that the tree is rerooted
-#on each internal node, with the marginal likelihood being the probabilities of observing the tips states given that the
-#the focal node is the root. Also, the code is written so that it can  be used as a separate function from corHMM. All 
-#that is required is a tree, trait, and a vector of estimated parameter values and the user is provided the marginal ancestral 
-#reconstruction.
+#Algorithm was based on a description by Yang (2006), and trees do not need to be bifurcating. The basic idea of Yang (2006) 
+#is that the tree is rerooted on each internal node, with the marginal likelihood being the probabilities of observing the tips 
+#states given that the the focal node is the root. However, this takes a ton of time as the number of nodes increases. But more 
+#importantly, this does not work when the model contains asymmetric rates. Here we use a dynamic programming algorithm that 
+#calculates the marginal probability at a node during an additional up and down passes of the tree. The results are identical to those 
+#from Mesquite and diversitree. Also, the code is written so that it can be used as a separate function from corHMM. All that is 
+#required is a tree, trait, and a vector of estimated parameter values and the user is provided the marginal ancestral reconstruction.
 
 recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL, root.p=NULL){
 	
@@ -596,42 +598,90 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 	
 	#Rename liks matrix so that the original data is not written over:
 	liks.final<-liks
-
-	for(j in seq(from = nb.tip + 1L, length.out=nb.node)){
-
-		#Rename phy and reroot on node j:
-		phy.tmp <- root(phy,node=j)
-		#Reorder as usual:
-		phy.tmp <- reorder(phy.tmp, "pruningwise")
-		comp <- numeric(nb.tip + nb.node)
-		TIPS <- 1:nb.tip
-		anc <- unique(phy.tmp$edge[,1])
-		#A temporary likelihood matrix so that the original does not get written over:
-		liks.tmp<-liks
-		#The same algorithm as in the main function. See comments in corHMM.R for details:
-		for (i  in seq(from = 1, length.out = nb.node)) {
-			#the ancestral node at row i is called focal
-			focal <- anc[i]
-			#Get descendant information of focal
-			desRows<-which(phy.tmp$edge[,1]==focal)
-			desNodes<-phy.tmp$edge[desRows,2]
-			v <- 1
-			for (desIndex in sequence(length(desRows))){
-				v <- v*expm(Q * phy.tmp$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks.tmp[desNodes[desIndex],]
+	
+	phy <- reorder(phy, "pruningwise")
+	comp <- numeric(nb.tip + nb.node)
+	TIPS <- 1:nb.tip
+	anc <- unique(phy$edge[,1])
+	#A temporary likelihood matrix so that the original does not get written over:
+	liks.down<-liks
+	##The first down-pass: The same algorithm as in the main function to calculate the conditional likelihood:
+	for (i  in seq(from = 1, length.out = nb.node)) {
+		#the ancestral node at row i is called focal
+		focal <- anc[i]
+		#Get descendant information of focal
+		desRows<-which(phy$edge[,1]==focal)
+		desNodes<-phy$edge[desRows,2]
+		v <- 1
+		for (desIndex in sequence(length(desRows))){
+			v <- v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks.down[desNodes[desIndex],]
+		}
+		comp[focal] <- sum(v)
+		liks.down[focal, ] <- v/comp[focal]
+	}
+	
+	root <- nb.tip + 1L
+	
+	if(!is.null(root.p)){
+		root <- nb.tip + 1L	
+		liks.down[root, ]<-root.p
+	}
+	
+	#The up-pass 
+	liks.up<-liks
+	liks.up[root,]<-liks.down[root,]
+	N <- dim(phy$edge)[1]
+	comp <- numeric(nb.tip + nb.node)
+	for(i in length(phy$edge[,1]):1){
+		focal <- phy$edge[i,1]
+		if(!focal==root){
+			#Gets mother and sister information of focal:
+			focalRow<-which(phy$edge[,2]==focal)
+			motherRow<-which(phy$edge[,1]==phy$edge[focalRow,1])
+			motherNode<-phy$edge[focalRow,1]
+			desNodes<-phy$edge[motherRow,2]
+			sisterNodes<-desNodes[(which(!desNodes==focal))]
+			sisterRows<-which(phy$edge[,2]==sisterNodes)
+			#If the mother is not the root then you are calculating the probability of the being in either state.
+			#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
+			if(motherNode!=root){
+				v <- expm(t(Q) * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
+			}
+			#If the mother is the root then just use the marginal. This can also be the prior, which I think is the equilibrium frequency. 
+			#But for now we are just going to use the marginal at the root.
+			else{
+				v <- liks.down[root,]
+			}
+			#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
+			#This is essentially calculating the product of the mothers probability and the sisters probability:
+			for (sisterIndex in sequence(length(sisterRows))){
+				v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
 			}
 			comp[focal] <- sum(v)
-			liks.tmp[focal, ] <- v/comp[focal]
+			liks.up[focal,] <- v/comp[focal]
 		}
-		root <- nb.tip + 1L
-		if(!is.null(root.p)){
-			root <- nb.tip + 1L	
-			liks.tmp[root, ]<-root.p
-		}
-		liks.final[j,]<-liks.tmp[root,]
 	}
+	
+	#The final pass
+	liks.final<-liks
+	comp <- numeric(nb.tip + nb.node)
+	for (i  in seq(from = 1, length.out = nb.node-1)) {
+		#the ancestral node at row i is called focal
+		focal <- anc[i]
+		desRows<-which(phy$edge[,2]==focal)
+		#Now you are asessing the change along the branch subtending the focal by multiplying the probability of 
+		#everything at and above focal by the probability of the mother and all the sisters given time t:
+		v <- liks.down[focal,]*expm(Q * phy$edge.length[desRows], method=c("Ward77")) %*% liks.up[focal,]
+		comp[focal] <- sum(v)
+		liks.final[focal, ] <- v/comp[focal]
+	}
+	#Just add in the marginal at the root calculated on the original downpass or if supplied by the user:
+	liks.final[root,] <- liks.down[root,]
+	#Reports just the probabilities at internal nodes:
 	obj$lik.anc.states <- liks.final[-TIPS, ]
 	
 	obj
 }
+
 
 

@@ -355,7 +355,6 @@ rate.cat.set<-function(phy,data,ntraits,model,par.drop,par.eq){
 				rate[tmp] <- 0
 				rate[tmp2] <- 0
 				rate[rate == 0] <- np + 1
-				print(rate)
 			}
 			
 			if (model == "ARD") {
