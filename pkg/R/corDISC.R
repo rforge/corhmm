@@ -149,7 +149,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
-	}
+	}	
 	if (node.states == "joint"){
 		lik.anc <- recon.joint(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
@@ -264,7 +264,6 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 		}
 	}	
 }
-
 
 rate.cat.set<-function(phy,data,ntraits,model,par.drop,par.eq){
 	

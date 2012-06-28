@@ -630,6 +630,7 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 	#The up-pass 
 	liks.up<-liks
 	liks.up[root,]<-liks.down[root,]
+	states<-apply(liks,1,which.max)
 	N <- dim(phy$edge)[1]
 	comp <- numeric(nb.tip + nb.node)
 	for(i in length(phy$edge[,1]):1){
@@ -641,7 +642,7 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 			motherNode<-phy$edge[focalRow,1]
 			desNodes<-phy$edge[motherRow,2]
 			sisterNodes<-desNodes[(which(!desNodes==focal))]
-			sisterRows<-which(phy$edge[,2]==sisterNodes)
+			sisterRows<-which(phy$edge[,2]%in%sisterNodes==TRUE)
 			#If the mother is not the root then you are calculating the probability of the being in either state.
 			#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
 			if(motherNode!=root){
@@ -653,9 +654,10 @@ recon.marginal <- function(phy, data, p, hrm=TRUE, rate.cat, ntraits=NULL, model
 				v <- liks.down[root,]
 			}
 			#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
-			#This is essentially calculating the product of the mothers probability and the sisters probability:
+			#This is essentially calculating the product of the mothers probability and the sisters probability. Again, note we are assessing 
+			#the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
 			for (sisterIndex in sequence(length(sisterRows))){
-				v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
+				v <- v*expm(t(Q) * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
 			}
 			comp[focal] <- sum(v)
 			liks.up[focal,] <- v/comp[focal]
