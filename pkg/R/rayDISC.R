@@ -15,12 +15,8 @@ require(numDeriv)
 require(expm)
 require(corpcor)
 require(phangorn)
-#require(multicore) TODO: fix
-#source("recon.joint.R")
-#source("recon.marginal.R")
-#source("recon.scaled.lik.R")
-#change to relative path
-source("/home/jeff/shared/RDev/corhmm/pkg/R/ancRECON.one.trait.R")
+#require(multicore)
+source("ancRECON.one.trait.R")
 
 #corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), method=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), method=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
