@@ -16,23 +16,20 @@ require(expm)
 require(corpcor)
 require(phangorn)
 require(multicore)
-source("recon.joint.R")
-source("recon.marginal.R")
-source("recon.scaled.lik.R")
+source("ancRECON.R")
 
-corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
 	
 	if(ntraits==2){
-		data<-data.frame(data[,2], data[,3], row.names=data[,1])
-		data<-data[phy$tip.label,]
+		data.sort<-data.frame(data[,2], data[,3], row.names=data[,1])
 	}
 	if(ntraits==3){
-		data<-data.frame(data[,2], data[,3], data[,4], row.names=data[,1])
-		data<-data[phy$tip.label,]
+		data.sort<-data.frame(data[,2], data[,3], data[,4], row.names=data[,1])
 	}
+	data.sort<-data.sort[phy$tip.label,]
 	#Have to collect this here. When you reorder, the branching time function is not correct:
 	tl<-max(branching.times(phy))
 	#Some initial values for use later - will clean up
@@ -47,12 +44,11 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	par.drop=par.drop
 	par.eq=par.eq
 	root.p=root.p	
-	nstarts=nstarts
 	ip=ip
 	
-	model.set.final<-rate.cat.set(phy=phy,data=data,ntraits=ntraits,model=model,par.drop=par.drop,par.eq=par.eq)
-	lower = rep(0.00001, model.set.final$np)
-	upper = rep(1000, model.set.final$np)
+	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,ntraits=ntraits,model=model,par.drop=par.drop,par.eq=par.eq)
+	lower = rep(0, model.set.final$np)
+	upper = rep(100, model.set.final$np)
 	
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 	
@@ -64,99 +60,56 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		loglik <- -out$objective
 		est.pars<-out$solution
 	}
-	else{	   
-		if(is.null(ip)){
-			cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
-			#If the analysis is to be run a single processor:
-			if(is.null(n.cores)){
-				#Sets parameter settings for random restarts by taking the parsimony score and dividing
-				#by the total length of the tree
-				dat<-as.matrix(data)
-				dat<-phyDat(dat,type="USER", levels=c("0","1"))
-				par.score<-parsimony(phy, dat, method="fitch")
-				mean = par.score/tl
-				if(mean<0.1){
-					mean=0.1
-				}			
-				starts<-rexp(model.set.final$np, mean)
-				ip = starts
-				out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)			
-				tmp = matrix(,1,ncol=(1+model.set.final$np))
-				tmp[,1] = out$objective
-				tmp[,2:(model.set.final$np+1)] = out$solution
-				for(i in 2:nstarts){
-					starts<-rexp(model.set.final$np, mean)
-					out.alt = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-					tmp[,1] = out.alt$objective
-					tmp[,2:(model.set.final$np+1)] = starts
-					if(out.alt$objective < out$objective){
-						out = out.alt
-						ip = starts
-					}
-					else{
-						out = out
-						ip = ip
-					}
-				}
-				loglik <- -out$objective
-				est.pars<-out$solution
-			}
-			#If the analysis is to be run on multiple processors:
-			else{
-				#Sets parameter settings for random restarts by taking the parsimony score and dividing
-				#by the total length of the tree
-				dat<-as.matrix(data)
-				dat<-phyDat(dat,type="USER", levels=c("0","1"))
-				par.score<-parsimony(phy, dat, method="fitch")
-				mean = par.score/tl
-				if(mean<0.1){
-					mean=0.1
-				}
-				random.restart<-function(nstarts){
-					tmp = matrix(,1,ncol=(1+model.set.final$np))
-					starts<-rexp(model.set.final$np, mean)
-					out = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-					tmp[,1] = out$objective
-					tmp[,2:(model.set.final$np+1)] = out$solution
-					tmp
-				}
-				restart.set<-mclapply(1:nstarts,random.restart, mc.cores=n.cores)
-				#Finds the best fit within the restart.set list
-				best.fit<-which.min(unlist(lapply(1:nstarts,function(i) lapply(restart.set[[i]][,1],min))))
-				#Generates an object to store results from restart algorithm:
-				out<-NULL
-				out$objective=unlist(restart.set[[best.fit]][,1])
-				out$solution=unlist(restart.set[[best.fit]][,2:(model.set.final$np+1)])
-				loglik <- -out$objective
-				est.pars<-out$solution
-			}
+	if(is.null(p)){	   
+		cat("Initializing...", "\n")
+		#If the analysis is to be run a single processor:
+		#Sets parameter settings for random restarts by taking the parsimony score and dividing
+		#by the total length of the tree
+		model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,ntraits=ntraits,model="ER",par.drop=par.drop,par.eq=par.eq)
+		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+		dat<-as.matrix(data.sort)
+		dat<-phyDat(dat,type="USER", levels=c("0","1"))
+		par.score<-parsimony(phy, dat, method="fitch")
+		mean = par.score/tl
+		if(mean<0.1){
+			mean=0.1
 		}
-		#If a user-specified starting value(s) is supplied:
-		else{
-			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-			out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-			loglik <- -out$objective
-			est.pars<-out$solution
-		}
+		ip<-rexp(1, mean)
+		lower.init = rep(0, model.set.init$np)
+		upper.init = rep(100, model.set.init$np)
+		init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.cordisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
+		cat("Finished. Begin thorough search...", "\n")
+		lower = rep(0, model.set.final$np)
+		upper = rep(100, model.set.final$np)	
+		out = nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+		loglik <- -out$objective
+		est.pars<-out$solution
+	}
+	#If a user-specified starting value(s) is supplied:
+	else{
+		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+		out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev, lb=lower, ub=upper, opts=opts)
+		loglik <- -out$objective
+		est.pars<-out$solution
 	}
 	
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
 	if (node.states == "marginal"){
-		lik.anc <- recon.marginal(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
 	}	
 	if (node.states == "joint"){
-		lik.anc <- recon.joint(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
 	if (node.states == "scaled"){
-		lik.anc <- recon.scaled.lik(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
@@ -190,7 +143,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
-	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
+	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"cordisc"
 	return(obj)
 }
@@ -265,7 +218,7 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	}	
 }
 
-rate.cat.set<-function(phy,data,ntraits,model,par.drop,par.eq){
+rate.cat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 	
 	k=ntraits
 	nl=2
@@ -405,8 +358,8 @@ rate.cat.set<-function(phy,data,ntraits,model,par.drop,par.eq){
 			np <- max(rate)
 		}
 		
-		x<-data[,1]
-		y<-data[,2]
+		x<-data.sort[,1]
+		y<-data.sort[,2]
 		
 		liks <- matrix(0, nb.tip + nb.node, nl^k)
 		TIPS <- 1:nb.tip
@@ -571,9 +524,9 @@ rate.cat.set<-function(phy,data,ntraits,model,par.drop,par.eq){
 			rate <- model
 			np <- max(rate)
 		}
-		x<-data[,1]
-		y<-data[,2]
-		z<-data[,3]
+		x<-data.sort[,1]
+		y<-data.sort[,2]
+		z<-data.sort[,3]
 		
 		liks <- matrix(0, nb.tip + nb.node, nl^k)
 		TIPS <- 1:nb.tip
