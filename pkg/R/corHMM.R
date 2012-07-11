@@ -25,20 +25,18 @@ require(corpcor)
 require(phangorn)
 require(multicore)
 require(rgenoud)
-source("recon.joint.R")
-source("recon.marginal.R")
-source("recon.scaled.lik.R")
+source("ancRECON.R")
 
 corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), method=c("genoud", "subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL){
 	
-	#Creates the data structure and orders the rows to match the tree. 
+#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
-	data <- data.frame(data[,2], data[,2],row.names=data[,1])
-	data <- data[phy$tip.label,]
-	#Have to collect this here. When you reorder, the branching time function is not correct:
+	data.sort <- data.frame(data[,2], data[,2],row.names=data[,1])
+	data.sort <- data.sort[phy$tip.label,]
+#Have to collect this here. When you reorder, the branching time function is not correct:
 	tl<-max(branching.times(phy))
 	
-	#Some initial values for use later
+#Some initial values for use later
 	k=2
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
@@ -50,9 +48,9 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 	nstarts=nstarts
 	ip=ip
 	
-	model.set.final<-rate.cat.set(phy=phy,data=data,rate.cat=rate.cat,par.drop=par.drop,par.eq=par.eq)
+	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=rate.cat,par.drop=par.drop,par.eq=par.eq)
 	lower = rep(0.00001, model.set.final$np)
-	upper = rep(1000, model.set.final$np)
+	upper = rep(100, model.set.final$np)
 	
 	if(method=="genoud"){
 		if(!is.null(p)){
@@ -63,9 +61,9 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 		}
 		else{
 			cat("Initializing...", "\n")
-			model.set.init<-rate.cat.set(phy=phy,data=data,rate.cat=1,par.drop=NULL,par.eq=c(1,2))
+			model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=1,par.drop=NULL,par.eq=c(1,2))
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-			dat<-as.matrix(data)
+			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
 			par.score<-parsimony(phy, dat, method="fitch")
 			mean = par.score/tl
@@ -74,9 +72,10 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 			}
 			ip<-rexp(1, mean)
 			lower = rep(0.00001, model.set.init$np)
-			upper = rep(1000, model.set.init$np)
+			upper = rep(100, model.set.init$np)
 			init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
-			
+			lower = rep(0.00001, model.set.final$np)
+			upper = rep(100, model.set.final$np)
 			cat("Finished. Begin thorough search...", "\n")
 			Domains<-cbind(lower,upper)
 			starting.values=rep(init$solution,length.out = model.set.final$np)
@@ -85,7 +84,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 			est.pars<-out$par
 		}
 	}
-
+	
 	if(method=="subplex"){
 		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 		if(!is.null(p)){
@@ -97,21 +96,20 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 			est.pars<-out$solution
 		}
 		else{	   
-			#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
+#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
 			if(is.null(ip)){
 				cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
-				#If the analysis is to be run a single processor:
+#If the analysis is to be run a single processor:
 				if(is.null(n.cores)){
-					#Sets parameter settings for random restarts by taking the parsimony score and dividing
-					#by the total length of the tree
-					dat<-as.matrix(data)
+#Sets parameter settings for random restarts by taking the parsimony score and dividing
+#by the total length of the tree
+					dat<-as.matrix(data.sort)
 					dat<-phyDat(dat,type="USER", levels=c("0","1"))
 					par.score<-parsimony(phy, dat, method="fitch")/2
 					mean = par.score/tl
 					starts<-rexp(model.set.final$np, mean)
 					ip = starts
 					out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)			
-					#Initializes a logfile, tmp, of the likelihood for different starting values. A quasi check-point in case computer gets disrupted during an analysis
 					tmp = matrix(,1,ncol=(1+model.set.final$np))
 					tmp[,1] = out$objective
 					tmp[,2:(model.set.final$np+1)] = starts
@@ -132,13 +130,13 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 					loglik <- -out$objective
 					est.pars<-out$solution
 				}
-				#If the analysis is to be run on multiple processors:
+#If the analysis is to be run on multiple processors:
 				else{
-					#Sets parameter settings for random restarts by taking the parsimony score and dividing
-					#by the total length of the tree
-					dat<-as.matrix(data)
+#Sets parameter settings for random restarts by taking the parsimony score and dividing
+#by the total length of the tree
+					dat<-as.matrix(data.sort)
 					dat<-phyDat(dat,type="USER", levels=c("0","1"))
-					par.score<-parsimony(phy, dat, method="fitch")
+					par.score<-parsimony(phy, dat, method="fitch")/2
 					mean = par.score/tl
 					if(mean<0.1){
 						mean=0.1
@@ -152,9 +150,9 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 						tmp
 					}
 					restart.set<-mclapply(1:nstarts,random.restart, mc.cores=n.cores)
-					#Finds the best fit within the restart.set list
+#Finds the best fit within the restart.set list
 					best.fit<-which.min(unlist(lapply(1:nstarts,function(i) lapply(restart.set[[i]][,1],min))))
-					#Generates an object to store results from restart algorithm:
+#Generates an object to store results from restart algorithm:
 					out<-NULL
 					out$objective=unlist(restart.set[[best.fit]][,1])
 					out$solution=unlist(restart.set[[best.fit]][,2:(model.set.final$np+1)])
@@ -162,7 +160,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 					est.pars<-out$solution
 				}
 			}
-			#If a user-specified starting value(s) is supplied:
+#If a user-specified starting value(s) is supplied:
 			else{
 				cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
 				ip=ip
@@ -172,39 +170,39 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 			}
 		}
 	}
-
-	#Starts the summarization process:
+	
+#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
-
+	
 	if (node.states == "marginal"){
-		lik.anc <- recon.marginal(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, method=node.states, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
 	}
 	if (node.states == "joint"){
-		lik.anc <- recon.joint(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
 	if (node.states == "scaled"){
-		lik.anc <- recon.scaled.lik(phy, data, est.pars, hrm=TRUE, rate.cat, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
 	}
-
+	
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
-	#Approximates the Hessian using the numDeriv function
+#Approximates the Hessian using the numDeriv function
 	h <- hessian(func=dev.corhmm, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-
+	
 	if (rate.cat == 1){
 		rownames(solution) <- rownames(solution.se) <- c("(0)","(1)")
 		colnames(solution) <- colnames(solution.se) <- c("(0)","(1)")			
-		#Initiates user-specified reconstruction method:
+#Initiates user-specified reconstruction method:
 		if (is.character(node.states)) {
 			if (node.states == "marginal"){
 				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
@@ -250,7 +248,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
-	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),rate.cat=rate.cat,solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
+	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),rate.cat=rate.cat,solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"corhmm"
 	return(obj)
 }
@@ -264,7 +262,7 @@ print.corhmm<-function(x,...){
 	cat("\nFit\n")
 	print(output)
 	cat("\n")
-
+	
 	param.est<- x$solution
 	cat("Rates\n")
 	print(param.est)
@@ -272,7 +270,7 @@ print.corhmm<-function(x,...){
 	
 	if(any(x$eigval<0)){
 		index.matrix <- x$index.mat
-		#If any eigenvalue is less than 0 then the solution is not the maximum likelihood solution
+#If any eigenvalue is less than 0 then the solution is not the maximum likelihood solution
 		if (any(x$eigval<0)) {
 			cat("The objective function may be at a saddle point", "\n")
 		}
@@ -290,62 +288,62 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	TIPS <- 1:nb.tip
 	comp <- numeric(nb.tip + nb.node)
 	phy <- reorder(phy, "pruningwise")
-	#Obtain an object of all the unique ancestors
+#Obtain an object of all the unique ancestors
 	anc <- unique(phy$edge[,1])
-
+	
 	if (any(is.nan(p)) || any(is.infinite(p))) return(1000000)
 	
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
 	
 	for (i  in seq(from = 1, length.out = nb.node)) {
-		#the ancestral node at row i is called focal
+#the ancestral node at row i is called focal
 		focal <- anc[i]
-		#Get descendant information of focal
+#Get descendant information of focal
 		desRows<-which(phy$edge[,1]==focal)
 		desNodes<-phy$edge[desRows,2]
 		v <- 1
-		#Loops through all descendants of focal (how we deal with polytomies):
+#Loops through all descendants of focal (how we deal with polytomies):
 		for (desIndex in sequence(length(desRows))){
 			v<-v*expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 		}
-		#Sum the likelihoods:
+#Sum the likelihoods:
 		comp[focal] <- sum(v)
-		#Divide each likelihood by the sum to obtain probabilities:
+#Divide each likelihood by the sum to obtain probabilities:
 		liks[focal, ] <- v/comp[focal]
 	}
-	#Specifies the root:
+#Specifies the root:
 	root <- nb.tip + 1L
-	#If any of the logs have NAs restart search:
+#If any of the logs have NAs restart search:
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
 		if (is.null(root.p)){
 			-sum(log(comp[-TIPS]))
 		}
-		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
+#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 		else{				
-			#Interesting development -- must have a non-zero rate in order to properly fix the root!
+#Interesting development -- must have a non-zero rate in order to properly fix the root!
 			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
 		}
 	}	
 }
 
-rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
+rate.cat.set<-function(phy,data.sort,rate.cat,par.drop,par.eq){
 	
 	k=2
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
 	obj$rate.cat<-rate.cat
-	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
-	#to go about this, but it is the best I can do for now -- it works, so what me worry?
+#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
+#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if (rate.cat == 1){
 		rate <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- 2
 		index<-matrix(TRUE,k*rate.cat,k*rate.cat)
 		diag(index) <- FALSE
 		rate[index] <- 1:np
-		#If par.eq is not null then pairs of parameters are set equal to each other.
+#If par.eq is not null then pairs of parameters are set equal to each other.
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j<-i+1
@@ -374,7 +372,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 		index[tmp] <- FALSE
 		index[tmp2] <- FALSE
 		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
+#If par.drop is not null will adjust the rate matrix
 		if(!is.null(par.drop)==TRUE){
 			for(i in 1:length(par.drop)){
 				tmp3 <- which(rate==par.drop[i], arr.ind=T)
@@ -384,7 +382,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 			np <- np-length(par.drop)
 			rate[index] <- 1:np
 		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
+#If par.eq is not null then pairs of parameters are set equal to each other.
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j<-i+1
@@ -414,7 +412,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 		diag(index) <- FALSE
 		index[tmp3] <- FALSE			
 		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
+#If par.drop is not null will adjust the rate matrix
 		if(!is.null(par.drop)==TRUE){
 			for(i in 1:length(par.drop)){
 				tmp4 <- which(rate==par.drop[i], arr.ind=T)
@@ -424,7 +422,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 			np <- np-length(par.drop)
 			rate[index] <- 1:np
 		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
+#If par.eq is not null then pairs of parameters are set equal to each other.
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j <- i+1
@@ -455,7 +453,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 		diag(index) <- FALSE
 		index[tmp3] <- FALSE			
 		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
+#If par.drop is not null will adjust the rate matrix
 		if(!is.null(par.drop)==TRUE){
 			for(i in 1:length(par.drop)){
 				tmp4 <- which(rate==par.drop[i], arr.ind=T)
@@ -465,7 +463,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 			np <- np-length(par.drop)
 			rate[index] <- 1:np
 		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
+#If par.eq is not null then pairs of parameters are set equal to each other.
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j<-i+1
@@ -495,7 +493,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 		diag(index) <- FALSE
 		index[tmp3] <- FALSE			
 		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
+#If par.drop is not null will adjust the rate matrix
 		if(!is.null(par.drop)==TRUE){
 			for(i in 1:length(par.drop)){
 				tmp4 <- which(rate==par.drop[i], arr.ind=T)
@@ -505,7 +503,7 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 			np <- np-length(par.drop)
 			rate[index] <- 1:np
 		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
+#If par.eq is not null then pairs of parameters are set equal to each other.
 		if(!is.null(par.eq)==TRUE){
 			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
 				j<-i+1
@@ -524,9 +522,9 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 		rate[tmp3] <- 0
 		rate[rate == 0] <- np + 1
 	}
-	#Makes a matrix of tip states and empty cells corresponding 
-	#to ancestral nodes during the optimization process.	
-	x <- data[,1]
+#Makes a matrix of tip states and empty cells corresponding 
+#to ancestral nodes during the optimization process.	
+	x <- data.sort[,1]
 	TIPS <- 1:nb.tip
 	
 	for(i in 1:nb.tip){
@@ -586,5 +584,4 @@ rate.cat.set<-function(phy,data,rate.cat,par.drop,par.eq){
 	
 	obj
 }
-
 

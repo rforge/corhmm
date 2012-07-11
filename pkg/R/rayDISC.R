@@ -29,14 +29,14 @@ rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), meth
 	data <- matching$data
 	phy <- matching$phy
 
-	# Won't perform reconstructions on invariant characters
+	# Wont perform reconstructions on invariant characters
 	if(nlevels(as.factor(data[,charnum+1])) <= 1){
 		obj <- NULL
 		obj$loglik <- NULL
 		obj$diagnostic <- paste("Character ",charnum," is invariant.  Reconstructions stopped.",sep="")
 		return(obj)
 	} else {
-		# Still need to make sure second level isn't just an ambiguity
+		# Still need to make sure second level isnt just an ambiguity
 		lvls <- as.factor(data[,charnum+1])
 		if(nlevels(as.factor(data[,charnum+1])) == 2 && length(which(lvls == "?"))){
 			obj <- NULL
@@ -123,7 +123,7 @@ rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), meth
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", method, "reconstruction.","\n")
 	
-	lik.anc <- ancRECON.one.trait(phy, data, est.pars, method=method, model=model, charnum=charnum,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	lik.anc <- ancRECON.one.trait(phy, data, est.pars, method=method, model=model, charnum=charnum, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
 	if(method == "marginal" || method == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
@@ -425,7 +425,7 @@ factorData <- function(data,whichchar=1){
 			numlvls <- length(ampLocs)+1
 			for(part in 1:numlvls){
 				# Pull out level from levelstring
-				if(part <= length(ampLocs)){ # Haven't reached the last state
+				if(part <= length(ampLocs)){ # Havent reached the last state
 					currlvl <- substr(levelstring,start,(ampLocs[part]-1)) # pull out value between start and the location-1 of the next ampersand
 				} else { # Final state in list
 					currlvl <- substr(levelstring,start,nchar(levelstring)) # pull out value between start and the last character of the string

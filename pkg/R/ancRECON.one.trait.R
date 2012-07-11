@@ -234,7 +234,7 @@ ancRECON.one.trait <- function(phy, data, p, method=c("joint", "marginal", "scal
 		#The final pass
 		liks.final<-liks
 		comp <- numeric(nb.tip + nb.node)
-		for (i  in seq(from = 1, length.out = nb.node-1)) { # In this final pass, root is never encountered.  But it's OK, because root likelihoods are set after loop.
+		for (i  in seq(from = 1, length.out = nb.node-1)) { # In this final pass, root is never encountered.  But its OK, because root likelihoods are set after loop.
 			#the ancestral node at row i is called focal
 			focal <- anc[i]
 			focalRows<-which(phy$edge[,2]==focal)
@@ -254,8 +254,7 @@ ancRECON.one.trait <- function(phy, data, p, method=c("joint", "marginal", "scal
 
 		#Reports just the probabilities at internal nodes:
 		obj$lik.anc.states <- liks.final[-TIPS, ]
-	}	
-
+	}
 	if(method=="scaled"){
 		comp<-matrix(0,nb.tip + nb.node,ncol(liks))
 		#The same algorithm as in the main function. See comments in either corHMM.R or corDISC.R for details:
