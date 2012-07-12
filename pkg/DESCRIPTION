@@ -1,0 +1,10 @@
+Package: corHMM
+Version: 1.1
+Date: 2012-7-11
+Title: Analysis of binary character evolution
+Author: Jeremy M. Beaulieu <jeremy.beaulieu@yale.edu>, Jeffrey C. Oliver <jeffreycoliver@gmail.com>, Brian O'Meara <bomeara@utk.edu>
+Maintainer: Jeremy M. Beaulieu <jeremy.beaulieu@yale.edu>, Jeffrey C. Oliver <jeffreycoliver@gmail.com>
+Imports: ape, nloptr, numDeriv, expm, corpcor, phangorn, multicore, rgenoud
+Depends: ape, nloptr, numDeriv, expm, corpcor, phangorn, multicore, rgenoud
+Description:Fits a generalized form of the covarion model that allows different transition rate classes on different portions of a phylogeny by treating rate classes as “hidden” states in a Markov process and various other functions involving binary characters.
+License: GPL (>= 2)

@@ -1,0 +1,7 @@
+export(corHMM,corDISC,rate.mat.index,ancRECON,rayDISC)
+import(ape,nloptr,numDeriv,expm,corpcor,phangorn,multicore,rgenoud)
+exportClasses('corhmm','cordisc', 'raydisc')
+
+S3method(print, corhmm)
+S3method(print, cordisc)
+S3method(print, raydisc)
