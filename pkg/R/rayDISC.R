@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu & Jeffrey C. Oliver
 
-rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, min.rate=0){
 
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -29,9 +29,6 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 		}
 	}
 
-#	data <- data.frame(data[,charnum+1],data[,charnum+1],row.names=data[,1]) # added character twice, because at least two columns are necessary
-#	data <- data[phy$tip.label,] # this might have already been done by match.tree.data	
-
 	workingData <- data.frame(data[,charnum+1],data[,charnum+1],row.names=data[,1]) # added character twice, because at least two columns are necessary
 	workingData <- workingData[phy$tip.label,] # this might have already been done by match.tree.data	
 
@@ -45,6 +42,9 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	k <- 1 # Only one trait allowed
 	factored <- factorData(workingData) # just factoring to figure out how many levels (i.e. number of states) in data.
 	nl <- ncol(factored)
+	state.names <- colnames(factored) # for subsequent reporting
+	lb.hit <- FALSE # to keep track of whether min.rate is one of the rate estimates (and thus, potentially a non-optimal rate)
+
 	obj <- NULL
 	nb.tip<-length(phy$tip.label)
 	nb.node <- phy$Nnode
@@ -82,17 +82,23 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 		tl <- sum(phy$edge.length)
 		mean = par.score/tl
 		ip<-rexp(1, 1/mean)
-		lower.init = rep(0, model.set.init$np)
+		if(min.rate > 0){
+			lower.bound <- min.rate # if user has provided a non-zero number, assign it as lower bound
+		} else lower.bound <- 0 # in case some genius has entered a negative value for min.rate
+		if(lower.bound > ip){ # initial parameter value is less than lower bound, 
+			ip <- lower.bound # so we have to increase it to avoid errors
+		}
+		lower.init = rep(lower.bound, model.set.init$np)
 		upper.init = rep(100, model.set.init$np)
 		init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.raydisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
 		cat("Finished. Begin thorough search...", "\n")
-		lower = rep(0, model.set.final$np)
+		lower = rep(lower.bound, model.set.final$np)
 		upper = rep(100, model.set.final$np)
 		out <- nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.raydisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 		loglik <- -out$objective
 		est.pars<-out$solution
 	}
-	#If a user-specified starting value(s) is supplied: is this redundant with if(!is.null(p)) conditional above?
+	#If a user-specified starting value(s) is supplied: TODO: is this redundant with if(!is.null(p)) conditional above?
 	else{
 		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
 		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
@@ -122,18 +128,22 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 	
-	rownames(solution) <- rownames(solution.se) <- c("0","1")
-	colnames(solution) <- colnames(solution.se) <- c("0","1")
+	if(any(solution == min.rate,na.rm = TRUE) && min.rate > 0){
+		lb.hit <- TRUE
+	}
+
+	rownames(solution) <- rownames(solution.se) <- state.names
+	colnames(solution) <- colnames(solution.se) <- state.names
 	if(is.character(node.states)){
 		if (node.states == "marginal"){
-			colnames(lik.anc$lik.anc.states) <- c("0","1")
+			colnames(lik.anc$lik.anc.states) <- state.names
 		}
 	}
 
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
-	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
+	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect,lb.hit = lb.hit) 
 	class(obj)<-"raydisc"
 	return(obj)
 }
@@ -163,6 +173,9 @@ print.raydisc<-function(x,...){
 	}
 	else{
 		cat("Arrived at a reliable solution","\n")
+	}
+	if(x$lb.hit){
+		cat("At least one rate parameter equals min.rate.  This may be a non-optimal solution.  Try running again or decreasing min.rate.\n")
 	}
 }
 
@@ -369,7 +382,6 @@ findAmps <- function(string){
 # Function to make factored matrix as levels are discovered.
 factorData <- function(data,whichchar=1){
 	charcol <- whichchar+1
-#	charcol <- whichchar
 	factored <- NULL # will become the matrix.  Starts with no data.
 	lvls <- NULL
 	numrows <- length(data[,charcol])
@@ -389,7 +401,6 @@ factorData <- function(data,whichchar=1){
 					if(length(factored) == 0){ # Matrix is empty, need to create it
 						factored <- matrix(0,numrows,1)
 						colnames(factored) <- currlvl
-#						rownames(factored) <- data[,1] # data object should already have taxa names assinged to rownames
 						rownames(factored) <- rownames(data)
 					} else { # matrix already exists, but need to add a column for the new level
 						zerocolumn <- rep(0,numrows)
@@ -419,7 +430,6 @@ factorData <- function(data,whichchar=1){
 						if(length(factored) == 0){ # Matrix is empty, need to create it
 							factored <- matrix(0,numrows,1)
 							colnames(factored) <- currlvl
-#							rownames(factored) <- data[,1] # data object should already have taxa names assinged to rownames
 							rownames(factored) <- rownames(data)
 						} else { # matrix already exists, but need to add a column for the new level
 							zerocolumn <- rep(0,numrows)
