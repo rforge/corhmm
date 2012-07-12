@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu & Jeffrey C. Oliver
 
-rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, min.rate=0){
+rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0,ub=100){
 
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -43,7 +43,18 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	factored <- factorData(workingData) # just factoring to figure out how many levels (i.e. number of states) in data.
 	nl <- ncol(factored)
 	state.names <- colnames(factored) # for subsequent reporting
-	lb.hit <- FALSE # to keep track of whether min.rate is one of the rate estimates (and thus, potentially a non-optimal rate)
+	bound.hit <- FALSE # to keep track of whether min.rate is one of the rate estimates (and thus, potentially a non-optimal rate)
+	# Check to make sure values are reasonable (i.e. non-negative)
+	if(ub < 0){
+		ub <- 100
+	}
+	if(lb < 0){
+		lb <- 0
+	}
+	if(ub < lb){ # This user really needs help
+		ub <- 100
+		lb <- 0
+	}
 
 	obj <- NULL
 	nb.tip<-length(phy$tip.label)
@@ -53,12 +64,11 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	par.drop=par.drop
 	par.eq=par.eq
 	root.p=root.p	
-	nstarts=nstarts
 	ip=ip
 
 	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model,par.drop=par.drop,par.eq=par.eq)
-	lower = rep(0.0, model.set.final$np)
-	upper = rep(100, model.set.final$np)
+	lower = rep(lb, model.set.final$np)
+	upper = rep(ub, model.set.final$np)
 
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 
@@ -69,44 +79,41 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 		out$objective<-dev.raydisc(out$solution,phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 		loglik <- -out$objective
 		est.pars<-out$solution
-	}
-	if(is.null(ip)){
-		cat("Initializing...", "\n")
-		#Sets parameter settings for random restarts by taking the parsimony score and dividing
-		#by the total length of the tree
-		model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER",par.drop=par.drop,par.eq=par.eq)
-		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-		dat<-as.matrix(workingData)
-		dat<-phyDat(dat,type="USER", levels=levels(as.factor(workingData[,1])))
-		par.score<-parsimony(phy, dat, method="fitch")
-		tl <- sum(phy$edge.length)
-		mean = par.score/tl
-		ip<-rexp(1, 1/mean)
-		if(min.rate > 0){
-			lower.bound <- min.rate # if user has provided a non-zero number, assign it as lower bound
-		} else lower.bound <- 0 # in case some genius has entered a negative value for min.rate
-		if(lower.bound > ip){ # initial parameter value is less than lower bound, 
-			ip <- lower.bound # so we have to increase it to avoid errors
+	} else {
+		if(is.null(ip)){
+			cat("Initializing...", "\n")
+			#Sets parameter settings for random restarts by taking the parsimony score and dividing
+			#by the total length of the tree
+			model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER",par.drop=par.drop,par.eq=par.eq)
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			dat<-as.matrix(workingData)
+			dat<-phyDat(dat,type="USER", levels=levels(as.factor(workingData[,1])))
+			par.score<-parsimony(phy, dat, method="fitch")
+			tl <- sum(phy$edge.length)
+			mean = par.score/tl
+			ip<-rexp(1, 1/mean)
+			if(ip < lb || ip > ub){ # initial parameter value is outside bounds
+				ip <- lb
+			}
+			lower.init = rep(lb, model.set.init$np)
+			upper.init = rep(ub, model.set.init$np)
+			init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.raydisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
+			cat("Finished. Begin thorough search...", "\n")
+			lower = rep(lb, model.set.final$np)
+			upper = rep(ub, model.set.final$np)
+			out <- nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.raydisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+			loglik <- -out$objective
+			est.pars<-out$solution
 		}
-		lower.init = rep(lower.bound, model.set.init$np)
-		upper.init = rep(100, model.set.init$np)
-		init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.raydisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
-		cat("Finished. Begin thorough search...", "\n")
-		lower = rep(lower.bound, model.set.final$np)
-		upper = rep(100, model.set.final$np)
-		out <- nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.raydisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-		loglik <- -out$objective
-		est.pars<-out$solution
+		#If a user-specified starting value(s) is supplied: TODO: is this redundant with if(!is.null(p)) conditional above?
+		else{
+			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.raydisc, lb=lower, ub=upper, opts=opts)
+			loglik <- -out$objective
+			est.pars<-out$solution
+		}
 	}
-	#If a user-specified starting value(s) is supplied: TODO: is this redundant with if(!is.null(p)) conditional above?
-	else{
-		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-		out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.raydisc, lb=lower, ub=upper, opts=opts)
-		loglik <- -out$objective
-		est.pars<-out$solution
-	}
-	
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
@@ -128,8 +135,8 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 	
-	if(any(solution == min.rate,na.rm = TRUE) && min.rate > 0){
-		lb.hit <- TRUE
+	if((any(solution == lb,na.rm = TRUE) || any(solution == ub,na.rm = TRUE)) && (lb != 0 || ub != 100)){
+		bound.hit <- TRUE
 	}
 
 	rownames(solution) <- rownames(solution.se) <- state.names
@@ -143,7 +150,15 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
-	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect,lb.hit = lb.hit) 
+	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect,bound.hit=bound.hit) 
+	if(!is.null(matching$message.data)){ # Some taxa were included in data matrix but not not used because they were not in the tree
+		obj$message.data <- matching$message.data
+		obj$data <- matching$data # Data used for analyses were different than submitted data; return this matrix
+	}
+	if(!is.null(matching$message.tree)){ # Some taxa were included in tree, but lacked data.  Coded as missing data.
+		obj$message.tree <- matching$message.tree
+		obj$data <- matching$data # Data used for analyses were different than submitted data; return this matrix
+	}
 	class(obj)<-"raydisc"
 	return(obj)
 }
@@ -174,9 +189,14 @@ print.raydisc<-function(x,...){
 	else{
 		cat("Arrived at a reliable solution","\n")
 	}
-	if(x$lb.hit){
-		cat("At least one rate parameter equals min.rate.  This may be a non-optimal solution.  Try running again or decreasing min.rate.\n")
+	if(x$bound.hit){
+		cat("At least one rate parameter equals the boundary value set by user (lb or ub).  This may be a non-optimal solution.  Try running again or changing boundary values.\n")
 	}
+	if(!is.null(x$message.data) || !is.null(x$message.tree)){
+		cat("\nThere were differences between the tree and matrix; see message.data and/or message.tree attribute of this polyStates object for details.\n",sep="")
+	}
+
+
 }
 
 dev.raydisc<-function(p,phy,liks,Q,rate,root.p){

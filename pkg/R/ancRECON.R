@@ -277,7 +277,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		#Imported from Jeffs rayDISC -- will clean up later, but for now, it works fine:
 		if(ntraits==1){
 			k <- 1
-			factored <- factorData(data)			
+			factored <- factorData(data.sort) # was acting on data, not data.sort			
 			nl <- ncol(factored)
 			obj <- NULL
 			nb.tip<-length(phy$tip.label)
@@ -764,7 +764,6 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			comp[focal] <- sum(v)
 			liks.down[focal, ] <- v/comp[focal]
 		}
-		
 		root <- nb.tip + 1L
 		#Enter the root defined root probabilities if they are supplied by the user:
 		if(!is.null(root.p)){
@@ -825,7 +824,6 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		root.final <- liks.down[root,] * equil.root
 		comproot <- sum(root.final)
 		liks.final[root,] <- root.final/comproot
-		
 		#Reports just the probabilities at internal nodes:
 		obj$lik.anc.states <- liks.final[-TIPS, ]
 	}	
@@ -845,8 +843,8 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			}
 			comp[focal] <- sum(v)
 			liks[focal, ] <- v/comp[focal]
-			
 		}
+
 		if(!is.null(root.p)){
 			root <- nb.tip + 1L	
 			liks[root, ]<-root.p
