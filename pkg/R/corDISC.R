@@ -2,23 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-#Takes a tree and a trait file and estimates the rate of dependent transitions between
-#two or three binary characters. The first column of the trait file must contain the species labels 
-#to match to the tree, with the second and third columns corresponding to x and y, 
-#respectively. Can test three models: ER = equal rates;SYM = forw/back equal, ARD = all 
-#rates unequal. Setting the Probs=TRUE will output the relative probabilities of the 
-#ancestral state at each node.
-
-require(ape)
-require(nloptr)
-require(numDeriv)
-require(expm)
-require(corpcor)
-require(phangorn)
-require(multicore)
-source("ancRECON.R")
-
-corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -30,8 +14,6 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		data.sort<-data.frame(data[,2], data[,3], data[,4], row.names=data[,1])
 	}
 	data.sort<-data.sort[phy$tip.label,]
-	#Have to collect this here. When you reorder, the branching time function is not correct:
-	tl<-max(branching.times(phy))
 	#Some initial values for use later - will clean up
 	k=ntraits
 	nl=2
@@ -47,8 +29,8 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	ip=ip
 	
 	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,ntraits=ntraits,model=model,par.drop=par.drop,par.eq=par.eq)
-	lower = rep(0, model.set.final$np)
-	upper = rep(100, model.set.final$np)
+	lower = rep(lb, model.set.final$np)
+	upper = rep(ub, model.set.final$np)
 	
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 	
@@ -70,17 +52,15 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		dat<-as.matrix(data.sort)
 		dat<-phyDat(dat,type="USER", levels=c("0","1"))
 		par.score<-parsimony(phy, dat, method="fitch")
+		tl <- sum(phy$edge.length)
 		mean = par.score/tl
-		if(mean<0.1){
-			mean=0.1
-		}
-		ip<-rexp(1, mean)
-		lower.init = rep(0, model.set.init$np)
-		upper.init = rep(100, model.set.init$np)
+		ip<-rexp(1, 1/mean)
+		lower.init = rep(lb, model.set.init$np)
+		upper.init = rep(ub, model.set.init$np)
 		init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.cordisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
 		cat("Finished. Begin thorough search...", "\n")
-		lower = rep(0, model.set.final$np)
-		upper = rep(100, model.set.final$np)	
+		lower = rep(lb, model.set.final$np)
+		upper = rep(ub, model.set.final$np)	
 		out = nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 		loglik <- -out$objective
 		est.pars<-out$solution
@@ -97,22 +77,15 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
-	if (node.states == "marginal"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
-	}	
-	if (node.states == "joint"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	}
+	if(node.states == "joint"){
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
-	}
-	if (node.states == "scaled"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-		pr<-apply(lik.anc$lik.anc.states,1,which.max)
-		phy$node.label <- pr
-		tip.states <- NULL
 	}
 	
 	cat("Finished. Performing diagnostic tests.", "\n")
@@ -383,8 +356,8 @@ rate.cat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 				np <- 1
 				tmp <- cbind(1:(nl^k), (nl^k):1)
 				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				col1 <- c(5:7,3:4,8,2,4,8,2,3,8,1,6,7,1,5,7,1,5,6,2,3,4,5,5,5,2,3,8,8,8,6,7)
-				col2 <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3),rep(5,3),rep(6,3),rep(7,3),rep(8,3),2,3,8,5,5,5,6,7,8,8)
+				col1 <- c(5:7,3:4,8,2,4,8,2,3,8,1,6,7,1,5,7,1,5,6,2,3,4)
+				col2 <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3),rep(5,3),rep(6,3),rep(7,3),rep(8,3))
 				tmp3 <- cbind(col1, col2)	
 				
 				index<-matrix(TRUE,nl^k,nl^k)

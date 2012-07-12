@@ -2,24 +2,7 @@
 
 #written by Jeremy M. Beaulieu & Jeffrey C. Oliver
 
-#Takes a tree and a trait file and estimates the rate of transitions among states,
-#The first column of the trait file must contain the species labels 
-#to match to the tree, with any additional columns corresponding to traits of interest. 
-#Can test three models: ER = equal rates;SYM = forw/back equal, ARD = all 
-#rates unequal. Can return three different types of most likely ancestral states:
-#joint, marginal, or scaled.
-
-require(ape)
-require(nloptr)
-require(numDeriv)
-require(expm)
-require(corpcor)
-require(phangorn)
-#require(multicore)
-source("ancRECON.one.trait.R")
-
-#corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), method=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
-rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), method=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
+rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), nstarts=10, n.cores=NULL, p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL){
 
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -58,8 +41,6 @@ rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), meth
 	cat("State distribution in data:\n")
 	cat("States:",levels,"\n",sep="\t")
 	cat("Counts:",counts,"\n",sep="\t")
-	#Have to collect this here. When you reorder, the branching time function is not correct:
-	tl<-max(branching.times(phy))
 	#Some initial values for use later - will clean up
 	k <- 1 # Only one trait allowed
 	factored <- factorData(workingData) # just factoring to figure out how many levels (i.e. number of states) in data.
@@ -121,15 +102,15 @@ rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), meth
 	}
 	
 	#Starts the summarization process:
-	cat("Finished. Inferring ancestral states using", method, "reconstruction.","\n")
+	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
-	lik.anc <- ancRECON.one.trait(phy, data, est.pars, method=method, model=model, charnum=charnum, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
-	if(method == "marginal" || method == "scaled"){
+	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, charnum=charnum, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
 	}
-	if(method == "joint"){
+	if(node.states == "joint"){
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
@@ -143,8 +124,8 @@ rayDISC<-function(phy,data, ntraits=1,charnum=1, model=c("ER","SYM","ARD"), meth
 	
 	rownames(solution) <- rownames(solution.se) <- c("0","1")
 	colnames(solution) <- colnames(solution.se) <- c("0","1")
-	if(is.character(method)){
-		if (method == "marginal"){
+	if(is.character(node.states)){
+		if (node.states == "marginal"){
 			colnames(lik.anc$lik.anc.states) <- c("0","1")
 		}
 	}
