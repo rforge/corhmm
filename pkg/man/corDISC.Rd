@@ -9,7 +9,8 @@ p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
 \item{data}{a data matrix containing species information (see Details).}
-\item{ntraits}{specifies the number of traits to included in the analysis.} 
+\item{ntraits}{specifies the number of traits to included in the analysis.}
+\item{model}{specifies the underlying model.} 
 \item{node.states}{method used to calculate ancestral states at internal nodes (see Details).}
 \item{p}{a vector of transition rates. Allows the user to calculate the likelihood given a specified set of parameter values to specified as fixed and calculate the likelihood.}
 \item{par.drop}{a vector of transitions to be dropped from the model. Use \code{rate.mat.index} to see what correspond to which transition.}
