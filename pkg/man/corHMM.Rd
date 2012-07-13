@@ -3,8 +3,8 @@
 \title{Hidden Rates Model}
 \description{Estimates hidden rates underlying the evolution of a binary character}
 \usage{
-corHMM(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), 
-p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100)
+corHMM(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, par.drop=NULL, par.eq=NULL, 
+root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}

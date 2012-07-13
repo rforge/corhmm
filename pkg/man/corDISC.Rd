@@ -3,8 +3,9 @@
 \title{Correlated evolution binary traits}
 \description{Fits a model of correlated evolution between two or three binary traits}
 \usage{
-corDISC(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), 
-p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
+corDISC(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", 
+"marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, 
+lb=0, ub=100)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}

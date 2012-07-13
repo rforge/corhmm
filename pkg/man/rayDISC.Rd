@@ -3,7 +3,8 @@
 \title{Evolution of categorical traits}
 \description{Fits a model of evolution for categorical traits, allowing for multi-state characters, polymorphisms, missing data, and incompletely resolved trees}
 \usage{
-rayDISC(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), 
+rayDISC(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"),
+node.states=c("joint", "marginal", "scaled"), 
 p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
 }
 \arguments{
