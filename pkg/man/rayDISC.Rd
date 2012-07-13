@@ -45,7 +45,7 @@ The function takes a tree and a trait file and estimates the transitions among c
 \item{$message.tree}{A list of taxa which were listed in the data matrix, but were not present in the passed \code{phylo} object. These taxa will be excluded from the analysis. \code{message.tree} is null if all taxa in data are included in tree.}
 \item{$message.data}{A list of taxa which were present in the passed \code{phylo} object, but lacked data in the passed data matrix. These taxa will be coded as missing data (all states equally likely). \code{message.data} is null if all taxa in tree have entries in data matrix.}
 }
-\seealso{\code{\link{plot.recons}}}
+\seealso{\code{\link{plotRECON}}}
 \examples{
     ### Example 1
     ## Load tree
@@ -58,7 +58,7 @@ The function takes a tree and a trait file and estimates the transitions among c
     recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ARD",node.states="marginal")
 
     ## Plot reconstructions on tree
-    plot.recons(rayDISC.example.tree,recon$states)
+    plotRECON(rayDISC.example.tree,recon$states)
 
     ### Example 2
     ## Perform ancestral state estimation on second character, using a single-rate model of evolution, marginal reconstruction of ancestral states, and setting the lower bound for parameter estimates to 0.01

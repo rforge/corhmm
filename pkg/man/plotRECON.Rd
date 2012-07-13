@@ -1,9 +1,9 @@
-\name{plot.recons}
-\alias{plot.recons}
+\name{plotRECON}
+\alias{plotRECON}
 \title{Plot ancestral state reconstructions}
 \description{Plots maximum likelihood ancestral state estimates on tree}
 \usage{
-plot.recons(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, showtiplabels=TRUE,title=NULL)
+plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, showtiplabels=TRUE,title=NULL)
 }
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -33,7 +33,7 @@ Plots ancestral state estimates on provided tree.  The \code{likelihoods} can be
     recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ER",node.states="marginal")
 
     ## Plot reconstructions on tree
-    plot.recons(rayDISC.example.tree,recon$states,title="rayDISC Example")
+    plotRECON(rayDISC.example.tree,recon$states,title="rayDISC Example")
 }
 \references{
 }
