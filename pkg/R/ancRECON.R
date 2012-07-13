@@ -468,9 +468,11 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			
 			liks <- matrix(0, nb.tip + nb.node, nl^k)
 			TIPS <- 1:nb.tip
-			
 			for(i in 1:nb.tip){
-				if(is.na(x[i])){x[i]=2 & y[i]=2}
+				if(is.na(x[i])){
+					x[i]=2
+					y[i]=2
+				}
 			}
 			for(i in 1:nb.tip){
 				if(x[i]==0 & y[i]==0){liks[i,1]=1}
@@ -634,9 +636,12 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			
 			liks <- matrix(0, nb.tip + nb.node, nl^k)
 			TIPS <- 1:nb.tip
-			
 			for(i in 1:nb.tip){
-				if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
+				if(is.na(x[i])){
+					x[i]=2
+					y[i]=2
+					z[i]=2
+				}
 			}
 			for(i in 1:nb.tip){
 				if(x[i]==0 & y[i]==0 & z[i]==0){liks[i,1]=1}

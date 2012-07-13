@@ -17,11 +17,5 @@ rate.mat.index(rate.cat, hrm=TRUE, ntraits=NULL, charnum=NULL, model=c("ER", "SY
 \details{
 Outputs the full index of the rate parameters that are optimized. The intention is that a user might want to see how the matrix is designed prior to an analysis and perhaps drops a few parameters beforehand due to some hypothesis that he or she might have.
 }
-\value{
-}
-\examples{
-}
-\references{
-}
 \author{Jeremy M. Beaulieu}
 \keyword{models}

@@ -41,9 +41,5 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigval}{The eigenvalues from the decomposition of the Hessian of the likelihood function. If any \code{eigval<0} then one or more parameters were not optimized during the likelihood search}
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
-\examples{
-}
-\references{
-}
 \author{Jeremy M. Beaulieu}
 \keyword{models}

@@ -11,6 +11,19 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 
 	#Some initial values for use later
 	k=2
+
+	# Check to make sure values are reasonable (i.e. non-negative)
+	if(ub < 0){
+		ub <- 100
+	}
+	if(lb < 0){
+		lb <- 0
+	}
+	if(ub < lb){ # This user really needs help
+		ub <- 100
+		lb <- 0
+	}
+	
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode

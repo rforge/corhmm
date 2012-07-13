@@ -45,9 +45,5 @@ The function takes a tree and a trait file and estimates the transitions among c
 \item{$message.tree}{A list of taxa which were listed in the data matrix, but were not present in the passed \code{phylo} object. These taxa will be excluded from the analysis. \code{message.tree} is null if all taxa in data are included in tree.}
 \item{$message.data}{A list of taxa which were present in the passed \code{phylo} object, but lacked data in the passed data matrix. These taxa will be coded as missing data (all states equally likely). \code{message.data} is null if all taxa in tree have entries in data matrix.}
 }
-\examples{
-}
-\references{
-}
 \author{Jeffrey C. Oliver}
 \keyword{models}

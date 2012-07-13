@@ -17,6 +17,19 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	#Some initial values for use later - will clean up
 	k=ntraits
 	nl=2
+	
+	# Check to make sure values are reasonable (i.e. non-negative)
+	if(ub < 0){
+		ub <- 100
+	}
+	if(lb < 0){
+		lb <- 0
+	}
+	if(ub < lb){ # This user really needs help
+		ub <- 100
+		lb <- 0
+	}
+
 	obj <- NULL
 	nb.tip<-length(phy$tip.label)
 	nb.node <- phy$Nnode
@@ -28,7 +41,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	root.p=root.p	
 	ip=ip
 	
-	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,ntraits=ntraits,model=model,par.drop=par.drop,par.eq=par.eq)
+	model.set.final<-rate.mat.set(phy,data.sort,ntraits,model=model,par.drop,par.eq)
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 	
@@ -42,38 +55,39 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 		loglik <- -out$objective
 		est.pars<-out$solution
 	}
-	if(is.null(p)){	   
-		cat("Initializing...", "\n")
-		#If the analysis is to be run a single processor:
-		#Sets parameter settings for random restarts by taking the parsimony score and dividing
-		#by the total length of the tree
-		model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,ntraits=ntraits,model="ER",par.drop=par.drop,par.eq=par.eq)
-		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-		dat<-as.matrix(data.sort)
-		dat<-phyDat(dat,type="USER", levels=c("0","1"))
-		par.score<-parsimony(phy, dat, method="fitch")
-		tl <- sum(phy$edge.length)
-		mean = par.score/tl
-		ip<-rexp(1, 1/mean)
-		lower.init = rep(lb, model.set.init$np)
-		upper.init = rep(ub, model.set.init$np)
-		init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.cordisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
-		cat("Finished. Begin thorough search...", "\n")
-		lower = rep(lb, model.set.final$np)
-		upper = rep(ub, model.set.final$np)	
-		out = nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-		loglik <- -out$objective
-		est.pars<-out$solution
-	}
-	#If a user-specified starting value(s) is supplied:
 	else{
-		cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-		out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev, lb=lower, ub=upper, opts=opts)
-		loglik <- -out$objective
-		est.pars<-out$solution
+		if(is.null(ip)){
+			cat("Initializing...", "\n")
+			#If the analysis is to be run a single processor:
+			#Sets parameter settings for random restarts by taking the parsimony score and dividing
+			#by the total length of the tree
+			model.set.init<-rate.mat.set(phy,data.sort,ntraits,model="ER",par.drop,par.eq)
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			dat<-as.matrix(data.sort)
+			dat<-phyDat(dat,type="USER", levels=c("0","1"))
+			par.score<-parsimony(phy, dat, method="fitch")
+			tl <- sum(phy$edge.length)
+			mean = par.score/tl
+			ip<-rexp(1, 1/mean)
+			lower.init = rep(lb, model.set.init$np)
+			upper.init = rep(ub, model.set.init$np)
+			init = nloptr(x0=rep(ip, length.out = model.set.init$np), eval_f=dev.cordisc, lb=lower.init, ub=upper.init, opts=opts, phy=phy,liks=model.set.init$liks,Q=model.set.init$Q,rate=model.set.init$rate,root.p=root.p)
+			cat("Finished. Begin thorough search...", "\n")
+			lower = rep(lb, model.set.final$np)
+			upper = rep(ub, model.set.final$np)	
+			out = nloptr(x0=rep(init$solution, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+			loglik <- -out$objective
+			est.pars<-out$solution
+		}
+		#If a user-specified starting value(s) is supplied:
+		else{
+			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts)
+			loglik <- -out$objective
+			est.pars<-out$solution
+		}
 	}
-	
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
@@ -191,8 +205,8 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	}	
 }
 
-rate.cat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
-	
+rate.mat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
+
 	k=ntraits
 	nl=2
 	obj <- NULL
@@ -336,9 +350,11 @@ rate.cat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 		
 		liks <- matrix(0, nb.tip + nb.node, nl^k)
 		TIPS <- 1:nb.tip
-		
 		for(i in 1:nb.tip){
-			if(is.na(x[i])){x[i]=2 & y[i]=2}
+			if(is.na(x[i])){
+				x[i]=2
+				y[i]=2
+			}
 		}
 		for(i in 1:nb.tip){
 			if(x[i]==0 & y[i]==0){liks[i,1]=1}
@@ -504,7 +520,11 @@ rate.cat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 		liks <- matrix(0, nb.tip + nb.node, nl^k)
 		TIPS <- 1:nb.tip
 		for(i in 1:nb.tip){
-			if(is.na(x[i])){x[i]=2 & y[i]=2 & z[i]=2}
+			if(is.na(x[i])){
+				x[i]=2
+				y[i]=2
+				z[i]=2
+			}
 		}
 		for(i in 1:nb.tip){
 			if(x[i]==0 & y[i]==0 & z[i]==0){liks[i,1]=1}

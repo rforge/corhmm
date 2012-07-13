@@ -24,12 +24,5 @@ par.drop=NULL, par.eq=NULL, root.p=NULL)
 \details{
 This function computes the marginal, joint, or scaled likelihoods of internal nodes for a given set of transition rates. The tree does not have to be bifurcating in order for the analyses to be carried out. The algorithm based on Pupko et al. (2000, 2002) is used to calculate the \code{joint} estimates of ancestral states. The \code{marginal} method was originally based on a description of an algorithm by Yang (2006). The basic idea of Yang (2006) is that the tree is rerooted on each internal node, with the marginal likelihood being the probabilities of observing the tips states given that the the focal node is the root. However, this takes a ton of time as the number of nodes increases. But more importantly, this does not work easily when the model contains asymmetric rates. Here we use the same dynamic programming algorithm as Mesquite, which calculates the marginal probability at a node using an additional up and down pass of the tree and is time linear with the number of species. If \code{scaled}, the function uses the same algorithm is based on the scaled likelihoods from ace(), though, here the trees do not need to be bifurcating.
 }
-\value{
-}
-
-\examples{
-}
-\references{
-}
 \author{Jeremy M. Beaulieu and Jeffrey C. Oliver}
-\keyword{models}
+\keyword{reconstructions}

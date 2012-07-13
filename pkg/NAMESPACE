@@ -1,4 +1,4 @@
-export(corHMM,corDISC,rate.mat.index,ancRECON,rayDISC)
+export(corHMM,corDISC,rate.mat.index,ancRECON,rayDISC,plotRECON)
 import(ape,nloptr,numDeriv,expm,corpcor,phangorn,multicore,rgenoud)
 exportClasses('corhmm','cordisc', 'raydisc')
 
