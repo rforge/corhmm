@@ -3,8 +3,7 @@
 \title{Evolution of categorical traits}
 \description{Fits a model of evolution for categorical traits, allowing for multi-state characters, polymorphisms, missing data, and incompletely resolved trees}
 \usage{
-rayDISC(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"),
-node.states=c("joint", "marginal", "scaled"), 
+rayDISC(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), 
 p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
 }
 \arguments{
@@ -45,6 +44,32 @@ The function takes a tree and a trait file and estimates the transitions among c
 \item{$bound.hit}{A logical for diagnosing if rate parameters were constrained by \code{lb} or \code{ub} values during optimization.}
 \item{$message.tree}{A list of taxa which were listed in the data matrix, but were not present in the passed \code{phylo} object. These taxa will be excluded from the analysis. \code{message.tree} is null if all taxa in data are included in tree.}
 \item{$message.data}{A list of taxa which were present in the passed \code{phylo} object, but lacked data in the passed data matrix. These taxa will be coded as missing data (all states equally likely). \code{message.data} is null if all taxa in tree have entries in data matrix.}
+}
+\seealso{\code{\link{plot.recons}}}
+\examples{
+    ### Example 1
+    ## Load tree
+    data(rayDISC.example.tree)
+
+    ## Load tip data
+    data(rayDISC.example.data)
+
+    ## Perform ancestral state estimation, using an asymmetric model of evolution and marginal reconstruction of ancestral states
+    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ARD",node.states="marginal")
+
+    ## Plot reconstructions on tree
+    plot.recons(rayDISC.example.tree,recon$states)
+
+    ### Example 2
+    ## Perform ancestral state estimation on second character, using a single-rate model of evolution, marginal reconstruction of ancestral states, and setting the lower bound for parameter estimates to 0.01
+    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=2,model="ER",node.states="marginal",lb=0.01)
+
+    ### Example 3
+    ## Perform ancestral state estimation on third character, using a single-rate model of evolution and joint reconstruction of ancestral states
+    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint")
+    
+}
+\references{
 }
 \author{Jeffrey C. Oliver}
 \keyword{models}
