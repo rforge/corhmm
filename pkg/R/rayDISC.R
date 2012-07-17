@@ -4,6 +4,27 @@
 
 rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0,ub=100){
 
+	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
+	if(is.null(node.states)){
+		obj <- NULL
+		obj$loglik <- NULL
+		obj$diagnostic <- paste("No model for ancestral states selected.  Please pass one of the following to rayDISC command for parameter \'node.states\': joint, marginal, or scaled.")
+		return(obj)
+	}
+	else { # even if node.states is not NULL, need to make sure it's one of the three valid options
+		valid.models <- c("joint", "marginal", "scaled")
+		if(!any(valid.models == node.states)){
+			obj <- NULL
+			obj$loglik <- NULL
+			obj$diagnostic <- paste("\'",node.states, "\' is not valid for ancestral state reconstruction method.  Please pass one of the following to rayDISC command for parameter \'node.states\': joint, marginal, or scaled.",sep="")
+			return(obj)
+		}
+		if(length(node.states) > 1){ # User did not enter a value, so just pick marginal.
+			node.states <- "marginal"
+			cat("No model selected for \'node.states\'. Will perform marginal ancestral state estimation.\n")
+		}
+	}
+
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
 
@@ -71,7 +92,6 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	upper = rep(ub, model.set.final$np)
 
 	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
-
 	if(!is.null(p)){
 		cat("Calculating likelihood from a set of fixed parameters", "\n")
 		out<-NULL
@@ -105,7 +125,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 			loglik <- -out$objective
 			est.pars<-out$solution
 		}
-		#If a user-specified starting value(s) is supplied: TODO: is this redundant with if(!is.null(p)) conditional above?
+		#If a user-specified starting value(s) is supplied:
 		else{
 			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
@@ -150,6 +170,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	hess.eig <- eigen(h,symmetric=TRUE)
 	eigval<-signif(hess.eig$values,2)
 	eigvect<-round(hess.eig$vectors, 2)
+
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect,bound.hit=bound.hit) 
 	if(!is.null(matching$message.data)){ # Some taxa were included in data matrix but not not used because they were not in the tree
 		obj$message.data <- matching$message.data
@@ -193,7 +214,7 @@ print.raydisc<-function(x,...){
 		cat("At least one rate parameter equals the boundary value set by user (lb or ub).  This may be a non-optimal solution.  Try running again or changing boundary values.\n")
 	}
 	if(!is.null(x$message.data) || !is.null(x$message.tree)){
-		cat("\nThere were differences between the tree and matrix; see message.data and/or message.tree attribute of this polyStates object for details.\n",sep="")
+		cat("\nThere were differences between the tree and matrix; see message.data and/or message.tree attribute of this rayDISC object for details.\n",sep="")
 	}
 
 
@@ -244,10 +265,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 	
 	k <- 1
 	factored <- factorData(data)
-
-#	nl=2 #We need to accommodate traits >2 states
 	nl <- ncol(factored)
-
 	obj <- NULL
 	nb.tip<-length(phy$tip.label)
 	nb.node <- phy$Nnode
@@ -256,14 +274,52 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 	if (is.character(model)) {
 		#rate is a matrix of rate categories (not actual rates)
 		rate <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
-		#np is the number of parameters in the rate matrix
+		tmp2 <- cbind(1:(nl^k), 1:(nl^k)) # For setting diagonals
+		index<-matrix(TRUE,nl^k,nl^k)
+		diag(index) <- FALSE
 		#Equal rates model, one parameter, all rate categories enumerated as '1'
-		if (model == "ER") np <- rate[] <- 1
+		if (model == "ER") {
+			np <- 1 #np is the number of parameters in the rate matrix
+			rate[index] <- 1:np
+			# TODO: par.drop doesn't work
+			#If par.drop is not null will adjust the rate matrix
+#			if(!is.null(par.drop)==TRUE){
+#				for(i in 1:length(par.drop)){
+#					tmp3 <- which(rate==par.drop[i], arr.ind=T)
+#					index[tmp3] <- FALSE
+#					rate[tmp3] <- 0
+#				}
+#				np <- np-length(par.drop)
+#				rate[index] <- 1:np
+#			}
+		}
 		#All rates different model, number of different parameters just nl x (nl-1)
 		#rates are enumerated up to np (e.g. for a two-state character there are 2 rate categories)
 		if (model == "ARD") {
 			np <- nl*(nl - 1)
-			rate[col(rate) != row(rate)] <- 1:np
+			rate[index] <- 1:np
+			#If par.drop is not null will adjust the rate matrix
+			if(!is.null(par.drop)==TRUE){
+				for(i in 1:length(par.drop)){
+					tmp3 <- which(rate==par.drop[i], arr.ind=T)
+					index[tmp3] <- FALSE
+					rate[tmp3] <- 0
+				}
+				np <- np-length(par.drop)
+				rate[index] <- 1:np
+			}
+			#If par.eq is not null then pairs of parameters are set equal to each other.
+			if(!is.null(par.eq)==TRUE){
+				for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+					j<-i+1
+					tmp3 <- which(rate==par.eq[j], arr.ind=T)
+					index[tmp3] <- FALSE
+					rate[tmp3] <- 0
+					np <- np-1
+					rate[index] <- 1:np
+					rate[tmp3] <- par.eq[i]
+				}
+			}
 		}
 		#Symmetrical model, like ARD, with half the values
 		if (model == "SYM") {
@@ -273,7 +329,36 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 			#Use transpose of the rate category matrix to finish enumerating:
 			rate <- t(rate)
 			rate[sel] <- 1:np
+			#If par.drop is not null will adjust the rate matrix
+			if(!is.null(par.drop)==TRUE){
+				for(i in 1:length(par.drop)){
+					tmp3 <- which(rate==par.drop[i], arr.ind=T)
+					index[tmp3] <- FALSE
+					rate[tmp3] <- 0
+					decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+					rate[decrement] <- rate[decrement] - 1
+				}
+				np <- np-length(par.drop)
+#				rate[index] <- 1:np # TODO: this renumbering doesn't work with symmetric rate matrix
+			}
+			#If par.eq is not null then pairs of parameters are set equal to each other.
+			if(!is.null(par.eq)==TRUE){
+				for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+					j<-i+1
+					tmp3 <- which(rate==par.eq[j], arr.ind=T)
+					if(length(tmp3) > 0){
+						index[tmp3] <- FALSE
+						rate[tmp3] <- 0
+						np <- np-1
+#						rate[index] <- 1:np  # TODO: this renumbering doesn't work with symmetric rate matrix
+						rate[tmp3] <- par.eq[i]
+						decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+						rate[decrement] <- rate[decrement] - 1
+					}
+				}
+			}
 		}
+
 	} else { #Using user-defined rate matrix
 		if (ncol(model) != nrow(model))
 			stop("the matrix given as `model' is not square")
@@ -283,9 +368,13 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 		rate <- model
 		np <- max(rate,na.rm=TRUE)
 	}
-	index.matrix <- rate
-	tmp <- cbind(1:nl, 1:nl)
+
+	tmp <- cbind(1:nl, 1:nl) # setting diagonal to zeros
 	rate[tmp] <- 0
+
+	index.matrix <- rate
+	index.matrix[index.matrix == 0] = NA
+
 	rate[rate == 0] <- np + 1 # Got to make sure to assign np + 1 to empty rate categories
 
 	stateTable <- NULL # will hold 0s and 1s for likelihoods of each state at tip
@@ -305,7 +394,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 	obj$index.matrix<-index.matrix
 	obj$liks<-liks
 	obj$Q<-Q
-	
+
 	return(obj)
 
 }
