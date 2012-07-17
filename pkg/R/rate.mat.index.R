@@ -1,6 +1,6 @@
 #RATE MATRIX INDEX
 
-rate.mat.index<-function(rate.cat, hrm=TRUE, ntraits=NULL, charnum=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL){
+rate.mat.index<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c("ER", "SYM", "ARD"), par.drop=NULL, par.eq=NULL){
 	
 	k=2
 
@@ -29,7 +29,8 @@ rate.mat.index<-function(rate.cat, hrm=TRUE, ntraits=NULL, charnum=NULL, model=c
 				}
 			}
 			index.matrix <- rate
-			index.matrix <- rate
+			index.matrix <- rate # TODO: Should this be index.matrix[index.matrix == 0] = NA
+
 			rownames(index.matrix) <- c("(0,R1)","(1,R1)")
 			colnames(index.matrix) <- c("(0,R1)","(1,R1)")		
 		}
@@ -191,34 +192,111 @@ rate.mat.index<-function(rate.cat, hrm=TRUE, ntraits=NULL, charnum=NULL, model=c
 		#Imported from Jeffs rayDISC -- will clean up later, but for now, it works fine:
 		if(ntraits==1){
 			k <- 1
-			factored <- factorData(data)			
-			nl <- ncol(factored)
+			nl <- nstates
 			obj <- NULL
+			
 			#Using one of three pre-defined models instead of user-defined model
 			if (is.character(model)) {
 				#rate is a matrix of rate categories (not actual rates)
 				rate <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
-				#np is the number of parameters in the rate matrix
+				tmp2 <- cbind(1:(nl^k), 1:(nl^k)) # For setting diagonals
+				index<-matrix(TRUE,nl^k,nl^k)
+				diag(index) <- FALSE
 				#Equal rates model, one parameter, all rate categories enumerated as '1'
-				if (model == "ER") np <- rate[] <- 1
+				if (model == "ER") {
+					np <- 1 #np is the number of parameters in the rate matrix
+					rate[index] <- 1:np
+					# TODO: par.drop doesn't work
+					#If par.drop is not null will adjust the rate matrix
+#					if(!is.null(par.drop)==TRUE){
+#						for(i in 1:length(par.drop)){
+#							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+#							index[tmp3] <- FALSE
+#							rate[tmp3] <- 0
+#						}
+#						np <- np-length(par.drop)
+#						rate[index] <- 1:np
+#					}
+				}
 				#All rates different model, number of different parameters just nl x (nl-1)
 				#rates are enumerated up to np (e.g. for a two-state character there are 2 rate categories)
 				if (model == "ARD") {
 					np <- nl*(nl - 1)
-					rate[col(rate) != row(rate)] <- 1:np
+					rate[index] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+						}
+						np <- np-length(par.drop)
+						rate[index] <- 1:np
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp3 <- which(rate==par.eq[j], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+							np <- np-1
+							rate[index] <- 1:np
+							rate[tmp3] <- par.eq[i]
+						}
+					}
 				}
 				#Symmetrical model, like ARD, with half the values
 				if (model == "SYM") {
 					np <- nl * (nl - 1)/2
 					sel <- col(rate) < row(rate)
 					rate[sel] <- 1:np
-						#Use transpose of the rate category matrix to finish enumerating:
+					#Use transpose of the rate category matrix to finish enumerating:
 					rate <- t(rate)
 					rate[sel] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+							decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+							rate[decrement] <- rate[decrement] - 1
+						}
+						np <- np-length(par.drop)
+#						rate[index] <- 1:np # TODO: this renumbering doesn't work with symmetric rate matrix
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp3 <- which(rate==par.eq[j], arr.ind=T)
+							if(length(tmp3) > 0){
+								index[tmp3] <- FALSE
+								rate[tmp3] <- 0
+								np <- np-1
+#								rate[index] <- 1:np  # TODO: this renumbering doesn't work with symmetric rate matrix
+								rate[tmp3] <- par.eq[i]
+								decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+								rate[decrement] <- rate[decrement] - 1
+							}
+						}
+					}
 				}
-			} 
+			} else { #Using user-defined rate matrix
+				if (ncol(model) != nrow(model))
+				stop("the matrix given as `model' is not square")
+				if (ncol(model) != nl)
+				stop("the matrix `model' must have as many rows as the number of categories in `x'")
+				#Model matrix is OK, and categories should already be enumerated
+				rate <- model
+				np <- max(rate,na.rm=TRUE)
+			}
 			index.matrix <- rate
 			index.matrix[index.matrix == 0] = NA
+
+			rownames(index.matrix) <- c(0:(nl-1))
+			colnames(index.matrix) <- c(0:(nl-1))
 		}
 		if(ntraits==2){
 			k=2

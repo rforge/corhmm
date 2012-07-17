@@ -287,14 +287,52 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			if (is.character(model)) {
 				#rate is a matrix of rate categories (not actual rates)
 				rate <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
-				#np is the number of parameters in the rate matrix
+				tmp2 <- cbind(1:(nl^k), 1:(nl^k)) # For setting diagonals
+				index<-matrix(TRUE,nl^k,nl^k)
+				diag(index) <- FALSE
 				#Equal rates model, one parameter, all rate categories enumerated as '1'
-				if (model == "ER") np <- rate[] <- 1
+				if (model == "ER") {
+					np <- 1 #np is the number of parameters in the rate matrix
+					rate[index] <- 1:np
+					# TODO: par.drop doesn't work
+					#If par.drop is not null will adjust the rate matrix
+#					if(!is.null(par.drop)==TRUE){
+#						for(i in 1:length(par.drop)){
+#							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+#							index[tmp3] <- FALSE
+#							rate[tmp3] <- 0
+#						}
+#						np <- np-length(par.drop)
+#						rate[index] <- 1:np
+#					}
+				}
 				#All rates different model, number of different parameters just nl x (nl-1)
 				#rates are enumerated up to np (e.g. for a two-state character there are 2 rate categories)
 				if (model == "ARD") {
 					np <- nl*(nl - 1)
-					rate[col(rate) != row(rate)] <- 1:np
+					rate[index] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+						}
+						np <- np-length(par.drop)
+						rate[index] <- 1:np
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp3 <- which(rate==par.eq[j], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+							np <- np-1
+							rate[index] <- 1:np
+							rate[tmp3] <- par.eq[i]
+						}
+					}
 				}
 				#Symmetrical model, like ARD, with half the values
 				if (model == "SYM") {
@@ -304,6 +342,34 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 					#Use transpose of the rate category matrix to finish enumerating:
 					rate <- t(rate)
 					rate[sel] <- 1:np
+					#If par.drop is not null will adjust the rate matrix
+					if(!is.null(par.drop)==TRUE){
+						for(i in 1:length(par.drop)){
+							tmp3 <- which(rate==par.drop[i], arr.ind=T)
+							index[tmp3] <- FALSE
+							rate[tmp3] <- 0
+							decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+							rate[decrement] <- rate[decrement] - 1
+						}
+						np <- np-length(par.drop)
+#						rate[index] <- 1:np # TODO: this renumbering doesn't work with symmetric rate matrix
+					}
+					#If par.eq is not null then pairs of parameters are set equal to each other.
+					if(!is.null(par.eq)==TRUE){
+						for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
+							j<-i+1
+							tmp3 <- which(rate==par.eq[j], arr.ind=T)
+							if(length(tmp3) > 0){
+								index[tmp3] <- FALSE
+								rate[tmp3] <- 0
+								np <- np-1
+#								rate[index] <- 1:np  # TODO: this renumbering doesn't work with symmetric rate matrix
+								rate[tmp3] <- par.eq[i]
+								decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
+								rate[decrement] <- rate[decrement] - 1
+							}
+						}
+					}
 				}
 			} else { #Using user-defined rate matrix
 				if (ncol(model) != nrow(model))
@@ -315,7 +381,9 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				np <- max(rate,na.rm=TRUE)
 			}
 			index.matrix <- rate
-			tmp <- cbind(1:nl, 1:nl)
+			index.matrix[index.matrix == 0] = NA
+			tmp <- cbind(1:nl, 1:nl) # for setting diagonals to zero
+
 			rate[tmp] <- 0
 			rate[rate == 0] <- np + 1 # Got to make sure to assign np + 1 to empty rate categories
 			
@@ -658,7 +726,6 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		Q <- matrix(0, nl^k, nl^k)
 		tranQ <- matrix(0, nl^k, nl^k)
 	}
-	
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
 	phy <- reorder(phy, "pruningwise")
