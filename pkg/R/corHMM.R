@@ -45,9 +45,12 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 		}
 		else{
 			cat("Initializing...", "\n")
-			###NEED TO FIX THIS SOMEHOW
 			model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=1)
-			###########################
+			rate<-rate.mat.maker(hrm=T,rate.cat=1)
+			rate<-rate.par.eq(rate,eq.par=c(1,2))
+			model.set.init$index.matrix<-rate
+			rate[is.na(rate)]<-max(rate,na.rm=T)+1
+			mode.set.init$rate<-rate
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
