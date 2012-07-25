@@ -82,7 +82,7 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 			matFINAL<-mat1+mat2
 			
 			if (is.character(model)) {
-				rate <- matrix(NA, nl^k, nl^k)
+				rate.mat.index <- matrix(NA, nl^k, nl^k)
 				if (model == "ER"){
 					np <- 1
 					index<-matFINAL==1
@@ -91,7 +91,7 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 				if (model == "SYM") {
 					np <- 4
 					index<-matFINAL==1
-					rate.mat.index[index][c(1,2,4,6)] <- rate[index][c(3,5,7,8)] <- 1:np
+					rate.mat.index[index][c(1,2,4,6)] <- rate.mat.index[index][c(3,5,7,8)] <- 1:np
 				}
 				if (model == "ARD") {
 					np <- 8
@@ -131,6 +131,7 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 				if (model == "ARD") {
 					np <- 24
 					index<-matFINAL==1
+					rate.mat.index[index] <- 1:np
 				}
 			}
 		}
@@ -147,62 +148,62 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 	return(rate.mat.index)
 }
 
-rate.par.drop <- function(rate.mat.index=NULL,drop=NULL){
+rate.par.drop <- function(rate.mat.index=NULL,drop.par=NULL){
 	if(is.null(rate.mat.index)){
 		cat("Rate matrix needed.  See mat.maker to create one.\n")
 		return
 	}
-	if(is.null(drop)){
+	if(is.null(drop.par)){
 		cat("No parameters indicated to drop.  Original matrix returned.\n")
 		return(rate.mat.index)
 	}
-	if(max(rate.mat.index,na.rm=TRUE) < max(drop,na.rm=TRUE)){
+	if(max(rate.mat.index,na.rm=TRUE) < max(drop.par,na.rm=TRUE)){
 		cat("Some parameters selected for dropping were not in the original matrix.\n")
 	}
-	drop <- unique(drop) # in case parameters listed more than once in drop vector
-	drop <- drop[order(drop)]
+	drop.par <- unique(drop.par) # in case parameters listed more than once in drop vector
+	drop.par <- drop.par[order(drop.par)]
 	max <- max(rate.mat.index,na.rm=TRUE)
-	for(drop.which in 1:length(drop)){
-		drop.locs <- which(rate.mat.index == drop[drop.which],arr.ind=TRUE)
+	for(drop.which in 1:length(drop.par)){
+		drop.locs <- which(rate.mat.index == drop.par[drop.which],arr.ind=TRUE)
 		rate.mat.index[drop.locs] <- NA
 	}
-	max <- max - length(drop)
+	max <- max - length(drop.par)
 	exclude <- which(is.na(rate.mat.index))
 	rate.mat.index[-exclude] <- 1:max
 	
 	return(rate.mat.index)
 }
 
-rate.par.eq <- function(rate.mat.index=NULL,eq=NULL){
-	if(is.null(rate.mat)){
+rate.par.eq <- function(rate.mat.index=NULL,eq.par=NULL){
+	if(is.null(rate.mat.index)){
 		cat("Rate matrix needed.  See mat.maker to create one.\n")
 		return
 	}
-	if(is.null(drop) || length(eq) < 2){
+	if(is.null(drop) || length(eq.par) < 2){
 		cat("Fewer than two parameters indicated to equalize.  Original matrix returned.\n")
 		return(rate.mat.index)
 	}
-	too.big <- which(eq > max(rate.mat.index,na.rm=TRUE))
+	too.big <- which(eq.par > max(rate.mat.index,na.rm=TRUE))
 	if(length(too.big) > 0){
 		cat("Some parameters selected for equalizing were not in the original matrix:\n")
-		cat("Not in original rate.mat.index:",eq[too.big],"\n")
+		cat("Not in original rate.mat.index:",eq.par[too.big],"\n")
 		cat("Original matrix returned.\n")
 		return(rate.mat.index)
 	}
-	eq <- unique(eq)
-	eq <- eq[order(eq)]	
-	min <- min(eq) # rm.na unnecessary?
+	eq.par <- unique(eq.par)
+	eq.par <- eq.par[order(eq.par)]	
+	min <- min(eq.par) # rm.na unnecessary?
 
 	# the decrement index will hold counters to decrement rate index
 	dec.index <- matrix(0,length(rate.mat.index[,1]),length(rate.mat.index[1,]))
-	for(eq.which in 2:length(eq)){
-		to.eq <- which(rate.mat.index == eq[eq.which],arr.ind=TRUE)
+	for(eq.which in 2:length(eq.par)){
+		to.eq <- which(rate.mat.index == eq.par[eq.which],arr.ind=TRUE)
 		rate.mat.index[to.eq] <- min
 	}
 	# the decrement index will hold counters to decrement rate index
 	dec.index <- matrix(0,length(rate.mat.index[,1]),length(rate.mat.index[1,]))
-	for(eq.which in 2:length(eq)){
-		to.dec <- which(rate.mat.index > eq[eq.which],arr.ind=TRUE) #greater than current decrementer
+	for(eq.which in 2:length(eq.par)){
+		to.dec <- which(rate.mat.index > eq.par[eq.which],arr.ind=TRUE) #greater than current decrementer
 		dec.index[to.dec] <- dec.index[to.dec] + 1
 	}
 	rate.mat.index <- rate.mat.index - dec.index
