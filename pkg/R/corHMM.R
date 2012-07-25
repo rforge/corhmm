@@ -321,8 +321,10 @@ rate.cat.set<-function(phy,data.sort,rate.cat){
 	nb.node <- phy$Nnode
 	obj$rate.cat<-rate.cat
 
-	rate.mat<-rate.mat.maker(hrm=TRUE,rate.cat=rate.cat)
-	
+	rate<-rate.mat.maker(hrm=TRUE,rate.cat=rate.cat)
+	index.matrix<-rate
+	rate[is.na(rate)]<-max(rate,na.rm=T)+1
+
 	#Makes a matrix of tip states and empty cells corresponding 
 	#to ancestral nodes during the optimization process.	
 	x <- data.sort[,1]
@@ -377,9 +379,9 @@ rate.cat.set<-function(phy,data.sort,rate.cat){
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
-	obj$np<-max(rate.mat$rate)-1
-	obj$rate<-rate.mat$rate
-	obj$index.matrix<-rate.mat$index.matrix
+	obj$np<-max(rate)-1
+	obj$rate<-rate
+	obj$index.matrix<-index.matrix
 	obj$liks<-liks
 	obj$Q<-Q
 	

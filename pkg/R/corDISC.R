@@ -219,7 +219,10 @@ rate.mat.set<-function(phy,data.sort,ntraits,model){
 	nb.node <- phy$Nnode
 	
 	if(ntraits==2){
-		rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+		rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+		index.matrix<-rate
+		rate[is.na(rate)]<-max(rate,na.rm=T)+1
+
 		x<-data.sort[,1]
 		y<-data.sort[,2]
 		
@@ -269,8 +272,8 @@ rate.mat.set<-function(phy,data.sort,ntraits,model){
 	Q <- matrix(0, nl^k, nl^k)
 	
 	obj$np<-max(rate.mat$rate)-1
-	obj$rate<-rate.mat$rate
-	obj$index.matrix<-rate.mat$index.matrix
+	obj$rate<-rate.mat
+	obj$index.matrix<-index.matrix
 	obj$liks<-liks
 	obj$Q<-Q
 	

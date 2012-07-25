@@ -3,13 +3,10 @@
 #written by Jeremy M. Beaulieu and Jeffrey C. Oliver
 
 rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c("ER", "SYM", "ARD")){
-	
-	obj=NULL
 	if(hrm==TRUE){
 		k=2
 		mat1 <- matrix(NA, k*rate.cat, k*rate.cat)
 		mat2 <- matrix(NA, k*rate.cat, k*rate.cat)
-		
 		vec.tmp1<-rep(c(0,1),rate.cat)
 		vec.tmp2<-rep(1:rate.cat, rep(2,rate.cat))-1
 		
@@ -18,13 +15,30 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 			mat2[i,]<-abs(vec.tmp2-vec.tmp2[i])
 		}
 		matFINAL<-mat1+mat2
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
+		rate.mat.index <- matrix(NA, k*rate.cat, k*rate.cat)
 		np <- k + (rate.cat-1) * 6
 		index<-matFINAL==1
-		rate[index] <- 1:np
-		rate[!index] <- np+1
-		index.matrix <- rate
-		index.matrix[!index] = NA
+		rate.mat.index[index] <- 1:np
+		if (rate.cat == 1){
+			rownames(rate.mat.index) <- c("(0)","(1)")
+			colnames(rate.mat.index) <- c("(0)","(1)")			
+		}
+		if (rate.cat == 2){
+			rownames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+			colnames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+		}
+		if (rate.cat == 3){
+			rownames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+			colnames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+		}
+		if (rate.cat == 4){
+			rownames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+			colnames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+		}
+		if (rate.cat == 5){
+			rownames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+			colnames(rate.mat.index) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+		}		
 	}
 	if(hrm==FALSE){
 		k=ntraits
@@ -33,25 +47,25 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 			k <- 1
 			nl <- nstates
 			if (is.character(model)) {
-				rate <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
+				rate.mat.index <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
 				tmp2 <- cbind(1:(nl^k), 1:(nl^k)) # For setting diagonals
 				index<-matrix(TRUE,nl^k,nl^k)
 				diag(index) <- FALSE
 				if (model == "ER") {
 					np <- 1 #np is the number of parameters in the rate matrix
-					rate[index] <- 1:np
+					rate.mat.index[index] <- 1:np
 				}
 				if (model == "SYM") {
 					np <- nl * (nl - 1)/2
-					sel <- col(rate) < row(rate)
+					sel <- col(rate.mat.index) < row(rate.mat.index)
 					rate[sel] <- 1:np
 					#Use transpose of the rate category matrix to finish enumerating:
-					rate <- t(rate)
-					rate[sel] <- 1:np
+					rate.mat.index <- t(rate.mat.index)
+					rate.mat.index[sel] <- 1:np
 				}
 				if (model == "ARD") {
 					np <- nl*(nl - 1)
-					rate[index] <- 1:np
+					rate.mat.index[index] <- 1:np
 				}
 			}
 		}
@@ -72,26 +86,17 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 				if (model == "ER"){
 					np <- 1
 					index<-matFINAL==1
-					rate[index] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
+					rate.mat.index[index] <- 1:np
 				}
 				if (model == "SYM") {
 					np <- 4
 					index<-matFINAL==1
-					rate[index][c(1,2,4,6)] <- rate[index][c(3,5,7,8)] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
+					rate.mat.index[index][c(1,2,4,6)] <- rate[index][c(3,5,7,8)] <- 1:np
 				}
 				if (model == "ARD") {
 					np <- 8
 					index<-matFINAL==1
-					rate[index] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
+					rate.mat.index[index] <- 1:np
 				}
 			}
 		}
@@ -112,38 +117,34 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 			matFINAL<-mat1+mat2+mat3
 			
 			if (is.character(model)) {
-				rate <- matrix(NA, nl^k, nl^k)
+				rate.mat.index <- matrix(NA, nl^k, nl^k)
 				if (model == "ER"){
 					np <- 1
 					index<-matFINAL==1
-					rate[index] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
+					rate.mat.index[index] <- 1:np
 				}
 				if (model == "SYM") {
 					np <- 12
 					index<-matFINAL==1
-					rate[index][c(1,2,3,5,6,8,9,11,12,15,18,21)] <- rate[index][c(4,7,10,13,16,14,19,17,20,22,23,24)] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
+					rate.mat.index[index][c(1,2,3,5,6,8,9,11,12,15,18,21)] <- rate.mat.index[index][c(4,7,10,13,16,14,19,17,20,22,23,24)] <- 1:np
 				}
 				if (model == "ARD") {
 					np <- 24
 					index<-matFINAL==1
-					rate[index] <- 1:np
-					rate[!index] <- np+1
-					index.matrix <- rate
-					index.matrix[!index] = NA
 				}
 			}
 		}
+		if(ntraits==2){
+			rownames(rate.mat.index) <- c("(0,0)","(0,1)","(1,0)","(1,1)")
+			colnames(rate.mat.index) <- c("(0,0)","(0,1)","(1,0)","(1,1)")
+		}
+		if(ntraits==3){
+			rownames(rate.mat.index) <- c("(0,0,0)","(1,0,0)","(0,1,0)","(0,0,1)","(1,1,0)","(1,0,1)","(0,1,1)","(1,1,1)")
+			colnames(rate.mat.index) <- c("(0,0,0)","(1,0,0)","(0,1,0)","(0,0,1)","(1,1,0)","(1,0,1)","(0,1,1)","(1,1,1)")
+		}			
 	}
-	obj$rate<-rate
-	obj$index.matrix<-index.matrix
-	
-	return(obj)
+
+	return(rate.mat.index)
 }
 
 rate.par.drop <- function(rate.mat.index=NULL,drop=NULL){
