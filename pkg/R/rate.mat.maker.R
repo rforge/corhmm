@@ -1,4 +1,6 @@
+#Rate matrix maker and manipulating functions
 
+#written by Jeremy M. Beaulieu and Jeffrey C. Oliver
 
 rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c("ER", "SYM", "ARD")){
 	
@@ -54,6 +56,7 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 			}
 		}
 		if(ntraits==2){
+			#Hard-coded for now
 			mat1<-matrix(,nl^k,nl^k)
 			mat2<-matrix(,nl^k,nl^k)
 			vec.tmp1<-c(0,0,1,1)
@@ -144,7 +147,6 @@ rate.mat.maker<-function(rate.cat, hrm=TRUE, ntraits=NULL, nstates=NULL, model=c
 }
 
 rate.par.drop <- function(rate.mat.index=NULL,drop=NULL){
-
 	if(is.null(rate.mat.index)){
 		cat("Rate matrix needed.  See mat.maker to create one.\n")
 		return
