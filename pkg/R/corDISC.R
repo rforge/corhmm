@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100){
+corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -36,12 +36,17 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	
 	ntraits=ntraits
 	model=model
-	par.drop=par.drop
-	par.eq=par.eq
 	root.p=root.p	
 	ip=ip
 	
-	model.set.final<-rate.mat.set(phy,data.sort,ntraits,model=model,par.drop,par.eq)
+	model.set.final<-rate.mat.set(phy,data.sort,ntraits,model=model)
+	if(!is.null(rate.mat)){
+		rate <- rate.mat
+		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
+		model.set.final$rate <- rate
+		model.set.final$index.mat <- rate.mat
+	}
+	
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 	
@@ -61,7 +66,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 			#If the analysis is to be run a single processor:
 			#Sets parameter settings for random restarts by taking the parsimony score and dividing
 			#by the total length of the tree
-			model.set.init<-rate.mat.set(phy,data.sort,ntraits,model="ER",par.drop,par.eq)
+			model.set.init<-rate.mat.set(phy,data.sort,ntraits,model="ER")
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
@@ -91,7 +96,7 @@ corDISC<-function(phy,data, ntraits=2, model=c("ER","SYM","ARD"), node.states=c(
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
-	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, root.p=root.p)
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
@@ -205,7 +210,7 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	}	
 }
 
-rate.mat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
+rate.mat.set<-function(phy,data.sort,ntraits,model){
 
 	k=ntraits
 	nl=2
@@ -214,137 +219,7 @@ rate.mat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 	nb.node <- phy$Nnode
 	
 	if(ntraits==2){
-		if (is.character(model)) {
-			
-			rate <- matrix(NA, nl^k, nl^k)
-			
-			if (model == "ER"){
-				np <- 1
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				diag(index)<-FALSE
-				index[tmp]<-FALSE
-				rate[index] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp3 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp3 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp3] <- par.eq[i]
-					}
-				}
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[rate == 0] <- np + 1
-			}
-			if (model == "SYM") {
-				np <- 4
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				diag(index)<-FALSE
-				index[tmp]<-FALSE
-				
-				rate[index][c(1,2,4,6)] <- rate[index][c(3,5,7,8)] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp3 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp3 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp3] <- par.eq[i]
-					}
-				}
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[rate == 0] <- np + 1
-			}
-			
-			if (model == "ARD") {
-				np <- 8
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				diag(index)<-FALSE
-				index[tmp]<-FALSE			
-				rate[index] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp3 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp3 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp3] <- par.eq[i]
-					}
-				}
-				
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[rate == 0] <- np + 1
-			}
-		} else {
-			if (ncol(model) != nrow(model))
-			stop("the matrix given as 'model' is not square")
-			if (ncol(model) != nl)
-			stop("the matrix 'model' must have as many rows
-				 as the number of categories in `x'")
-			rate <- model
-			np <- max(rate)
-		}
-		
+		rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
 		x<-data.sort[,1]
 		y<-data.sort[,2]
 		
@@ -365,154 +240,7 @@ rate.mat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 		}
 	}
 	if(ntraits==3){
-		if (is.character(model)) {
-			rate <- matrix(NA, nl^k, nl^k)
-			
-			if (model == "ER"){
-				np <- 1
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				col1 <- c(5:7,3:4,8,2,4,8,2,3,8,1,6,7,1,5,7,1,5,6,2,3,4)
-				col2 <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3),rep(5,3),rep(6,3),rep(7,3),rep(8,3))
-				tmp3 <- cbind(col1, col2)	
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				index[tmp2]<-FALSE
-				index[tmp]<-FALSE
-				index[tmp3]<-FALSE
-				
-				rate[index] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp4 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp4 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp4] <- par.eq[i]
-					}
-				}
-				
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA				
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[tmp3] <- 0
-				rate[rate == 0] <- np + 1
-			}
-			
-			if (model == "SYM") {
-				np <- 12
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				col1 <- c(5:7,3:4,8,2,4,8,2,3,8,1,6,7,1,5,7,1,5,6,2,3,4)
-				col2 <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3),rep(5,3),rep(6,3),rep(7,3),rep(8,3))
-				tmp3 <- cbind(col1, col2)	
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				index[tmp2]<-FALSE
-				index[tmp]<-FALSE
-				index[tmp3]<-FALSE
-				rate[index][c(1,2,3,5,6,8,9,11,12,15,18,21)] <- rate[index][c(4,7,10,13,16,14,19,17,20,22,23,24)] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp4 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp4 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp4] <- par.eq[i]
-					}
-				}
-				
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA				
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[tmp3] <- 0
-				rate[rate == 0] <- np + 1	
-			}
-			
-			if (model == "ARD") {
-				np <- 24
-				tmp <- cbind(1:(nl^k), (nl^k):1)
-				tmp2 <- cbind(1:(nl^k), 1:(nl^k))
-				col1 <- c(5:7,3:4,8,2,4,8,2,3,8,1,6,7,1,5,7,1,5,6,2,3,4)
-				col2 <- c(rep(1,3),rep(2,3),rep(3,3),rep(4,3),rep(5,3),rep(6,3),rep(7,3),rep(8,3))
-				tmp3 <- cbind(col1, col2)	
-				
-				index<-matrix(TRUE,nl^k,nl^k)
-				index[tmp2]<-FALSE
-				index[tmp]<-FALSE
-				index[tmp3]<-FALSE			
-				rate[index] <- 1:np
-				#If par.drop is not null will adjust the rate matrix
-				if(!is.null(par.drop)==TRUE){
-					for(i in 1:length(par.drop)){
-						tmp4 <- which(rate==par.drop[i], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-					}
-					np <- np-length(par.drop)
-					rate[index] <- 1:np
-				}
-				#If par.eq is not null then pairs of parameters are set equal to each other.
-				if(!is.null(par.eq)==TRUE){
-					for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-						j<-i+1
-						tmp4 <- which(rate==par.eq[j], arr.ind=T)
-						index[tmp4] <- FALSE
-						rate[tmp4] <- 0
-						np <- np-1
-						rate[index] <- 1:np
-						rate[tmp4] <- par.eq[i]
-					}
-				}
-				
-				index.matrix <- rate
-				index.matrix[index.matrix == 0] = NA
-				
-				rate[tmp] <- 0
-				rate[tmp2] <- 0
-				rate[tmp3] <- 0
-				rate[rate == 0] <- np + 1
-			}
-		} 
-		else {
-			if (ncol(model) != nrow(model))
-			stop("the matrix given as 'model' is not square")
-			if (ncol(model) != nl)
-			stop("the matrix `model' must have as many rows
-				 as the number of categories in `x'")
-			rate <- model
-			np <- max(rate)
-		}
+		rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
 		x<-data.sort[,1]
 		y<-data.sort[,2]
 		z<-data.sort[,3]
@@ -540,9 +268,9 @@ rate.mat.set<-function(phy,data.sort,ntraits,model,par.drop,par.eq){
 	}
 	Q <- matrix(0, nl^k, nl^k)
 	
-	obj$np<-np
-	obj$rate<-rate
-	obj$index.matrix<-index.matrix
+	obj$np<-max(rate.mat$rate)-1
+	obj$rate<-rate.mat$rate
+	obj$index.matrix<-rate.mat$index.matrix
 	obj$liks<-liks
 	obj$Q<-Q
 	

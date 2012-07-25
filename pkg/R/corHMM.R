@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100){
+corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -28,13 +28,11 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
 	rate.cat=rate.cat
-	par.drop=par.drop
-	par.eq=par.eq
 	root.p=root.p
 	nstarts=nstarts
 	ip=ip
 	
-	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=rate.cat,par.drop=par.drop,par.eq=par.eq)
+	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=rate.cat)
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 	
@@ -47,7 +45,9 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 		}
 		else{
 			cat("Initializing...", "\n")
-			model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=1,par.drop=NULL,par.eq=c(1,2))
+			###NEED TO FIX THIS SOMEHOW
+			model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=1)
+			###########################
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
@@ -160,18 +160,18 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
 	if (node.states == "marginal"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, method=node.states, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, method=node.states, ntraits=NULL, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
 	}
 	if (node.states == "joint"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
 	if (node.states == "scaled"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- NULL
@@ -313,200 +313,16 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	}	
 }
 
-rate.cat.set<-function(phy,data.sort,rate.cat,par.drop,par.eq){
+rate.cat.set<-function(phy,data.sort,rate.cat){
 	
 	k=2
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
 	obj$rate.cat<-rate.cat
-	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
-	#to go about this, but it is the best I can do for now -- it works, so what me worry?
-	if (rate.cat == 1){
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
-		np <- 2
-		index<-matrix(TRUE,k*rate.cat,k*rate.cat)
-		diag(index) <- FALSE
-		rate[index] <- 1:np
-		#If par.eq is not null then pairs of parameters are set equal to each other.
-		if(!is.null(par.eq)==TRUE){
-			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-				j<-i+1
-				tmp3 <- which(rate==par.eq[j], arr.ind=T)
-				index[tmp3] <- FALSE
-				rate[tmp3] <- 0
-				np <- np-1
-				rate[index] <- 1:np
-				rate[tmp3] <- par.eq[i]
-			}
-		}
-		index.matrix <- rate
-		index.matrix[index.matrix == 0] = NA		
-		
-		diag(rate)<-0
-		rate[rate == 0] <- np + 1
-	}
-	if (rate.cat == 2){
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
-		np <- 8
-		tmp <- cbind(1:(k*rate.cat), (k*rate.cat):1)
-		tmp2 <- cbind(1:(k*rate.cat), 1:(k*rate.cat))
-		
-		index <- matrix(TRUE,k*rate.cat,k*rate.cat)
-		diag(index) <- FALSE
-		index[tmp] <- FALSE
-		index[tmp2] <- FALSE
-		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
-		if(!is.null(par.drop)==TRUE){
-			for(i in 1:length(par.drop)){
-				tmp3 <- which(rate==par.drop[i], arr.ind=T)
-				index[tmp3] <- FALSE
-				rate[tmp3] <- 0
-			}
-			np <- np-length(par.drop)
-			rate[index] <- 1:np
-		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
-		if(!is.null(par.eq)==TRUE){
-			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-				j<-i+1
-				tmp3 <- which(rate==par.eq[j], arr.ind=T)
-				index[tmp3] <- FALSE
-				rate[tmp3] <- 0
-				np <- np-1
-				rate[index] <- 1:np
-				rate[tmp3] <- par.eq[i]
-			}
-		}
-		index.matrix <- rate
-		index.matrix[index.matrix == 0] = NA
-		
-		rate[tmp] <- 0
-		rate[tmp2] <- 0
-		rate[rate == 0] <- np + 1
-	}
-	if (rate.cat == 3){
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
-		np <- 14
-		tmp <-	c(4,5,6,3,5,6,2,6,1,5,1,2,4,1,2,3)
-		tmp2 <- c(1,1,1,2,2,2,3,3,4,4,5,5,5,6,6,6)
-		tmp3 <- cbind(tmp,tmp2)
-		
-		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
-		diag(index) <- FALSE
-		index[tmp3] <- FALSE			
-		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
-		if(!is.null(par.drop)==TRUE){
-			for(i in 1:length(par.drop)){
-				tmp4 <- which(rate==par.drop[i], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-			}
-			np <- np-length(par.drop)
-			rate[index] <- 1:np
-		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
-		if(!is.null(par.eq)==TRUE){
-			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-				j <- i+1
-				tmp4 <- which(rate==par.eq[j], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-				np <- np-1
-				rate[index] <- 1:np
-				rate[tmp4] <- par.eq[i]
-				par.eq<-par.eq-1
-			}
-		}		
-		index.matrix <- rate
-		index.matrix[index.matrix == 0] = NA
-		
-		diag(rate) <- 0
-		rate[tmp3] <- 0
-		rate[rate == 0] <- np + 1
-	}
-	if (rate.cat == 4){
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
-		np <- 20
-		tmp <- c(4,5,6,7,8,3,5,6,7,8,2,6,7,8,1,5,7,8,1,2,4,8,1,2,3,7,1,2,3,4,6,1,2,3,4,5)
-		tmp2 <-c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,7,8,8,8,8,8)
-		tmp3 <- cbind(tmp,tmp2)
-		
-		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
-		diag(index) <- FALSE
-		index[tmp3] <- FALSE			
-		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
-		if(!is.null(par.drop)==TRUE){
-			for(i in 1:length(par.drop)){
-				tmp4 <- which(rate==par.drop[i], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-			}
-			np <- np-length(par.drop)
-			rate[index] <- 1:np
-		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
-		if(!is.null(par.eq)==TRUE){
-			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-				j<-i+1
-				tmp4 <- which(rate==par.eq[j], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-				np <- np-1
-				rate[index] <- 1:np
-				rate[tmp4] <- par.eq[i]
-			}
-		}		
-		index.matrix <- rate
-		index.matrix[index.matrix == 0] = NA
-		
-		diag(rate) <- 0
-		rate[tmp3]<-0
-		rate[rate == 0] <- np + 1
-	}
-	if (rate.cat == 5){
-		rate <- matrix(NA, k*rate.cat, k*rate.cat)
-		np <- 26
-		tmp <- c(4,5,6,7,8,9,10,3,5,6,7,8,9,10,2,6,7,8,9,10,1,5,7,8,9,10,1,2,4,8,9,10,1,2,3,7,9,10,1,2,3,4,6,10,1,2,3,4,5,8,9,1,2,3,4,5,6,8,1,2,3,4,5,6,7)
-		tmp2 <-c(1,1,1,1,1,1, 1,2,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,6,6,6,6,6,6,7,7,7,7,7,7,8,8,8,8,8,8,8,9,9,9,9,9,9,9,10,10,10,10,10,10,10)		
-		tmp3 <- cbind(tmp,tmp2)
-		
-		index <- matrix(TRUE,(k*rate.cat),(k*rate.cat))
-		diag(index) <- FALSE
-		index[tmp3] <- FALSE			
-		rate[index] <- 1:np
-		#If par.drop is not null will adjust the rate matrix
-		if(!is.null(par.drop)==TRUE){
-			for(i in 1:length(par.drop)){
-				tmp4 <- which(rate==par.drop[i], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-			}
-			np <- np-length(par.drop)
-			rate[index] <- 1:np
-		}
-		#If par.eq is not null then pairs of parameters are set equal to each other.
-		if(!is.null(par.eq)==TRUE){
-			for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-				j<-i+1
-				tmp4 <- which(rate==par.eq[j], arr.ind=T)
-				index[tmp4] <- FALSE
-				rate[tmp4] <- 0
-				np <- np-1
-				rate[index] <- 1:np
-				rate[tmp4] <- par.eq[i]
-			}
-		}		
-		index.matrix <- rate
-		index.matrix[index.matrix == 0] = NA
-		
-		diag(rate) <- 0
-		rate[tmp3] <- 0
-		rate[rate == 0] <- np + 1
-	}
+
+	rate.mat<-rate.mat.maker(hrm=TRUE,rate.cat=rate.cat)
+	
 	#Makes a matrix of tip states and empty cells corresponding 
 	#to ancestral nodes during the optimization process.	
 	x <- data.sort[,1]
@@ -561,9 +377,9 @@ rate.cat.set<-function(phy,data.sort,rate.cat,par.drop,par.eq){
 		}
 		Q <- matrix(0, k*rate.cat, k*rate.cat)
 	}
-	obj$np<-np
-	obj$rate<-rate
-	obj$index.matrix<-index.matrix
+	obj$np<-max(rate.mat$rate)-1
+	obj$rate<-rate.mat$rate
+	obj$index.matrix<-rate.mat$index.matrix
 	obj$liks<-liks
 	obj$Q<-Q
 	

@@ -363,7 +363,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 								index[tmp3] <- FALSE
 								rate[tmp3] <- 0
 								np <- np-1
-#								rate[index] <- 1:np  # TODO: this renumbering doesn't work with symmetric rate matrix
+#								rate[index] <- 1:np  # TODO: this renumbering does not work with symmetric rate matrix
 								rate[tmp3] <- par.eq[i]
 								decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
 								rate[decrement] <- rate[decrement] - 1
@@ -373,9 +373,9 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				}
 			} else { #Using user-defined rate matrix
 				if (ncol(model) != nrow(model))
-				stop("the matrix given as `model' is not square")
+				stop("the matrix given as 'model' is not square")
 				if (ncol(model) != nl)
-				stop("the matrix `model' must have as many rows as the number of categories in `x'")
+				stop("the matrix 'model' must have as many rows as the number of categories in 'x'")
 				#Model matrix is OK, and categories should already be enumerated
 				rate <- model
 				np <- max(rate,na.rm=TRUE)
