@@ -271,8 +271,8 @@ rate.mat.set<-function(phy,data.sort,ntraits,model){
 	}
 	Q <- matrix(0, nl^k, nl^k)
 	
-	obj$np<-max(rate.mat$rate)-1
-	obj$rate<-rate.mat
+	obj$np<-max(rate)-1
+	obj$rate<-rate
 	obj$index.matrix<-index.matrix
 	obj$liks<-liks
 	obj$Q<-Q

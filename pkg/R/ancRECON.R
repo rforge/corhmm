@@ -29,16 +29,14 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
 	
-	par.drop=par.drop
-	par.eq=par.eq
 	root.p=root.p
 	
 	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
 	#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if(hrm==TRUE){
 		if(is.null(rate.mat)){
-			rate.mat<-rate.mat.maker(hrm=T,rate.cat=rate.cat)
-			rate<-rate.mat$rate
+			rate<-rate.mat.maker(hrm=T,rate.cat=rate.cat)
+			rate[is.na(rate)]<-max(rate,na.rm=T)+1
 		}
 		else{
 			rate<-rate.mat
@@ -224,8 +222,8 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			k=2
 			nl=2
 			if(is.null(rate.mat)){
-				rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
-				rate<-rate.mat$rate
+				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+				rate[is.na(rate)]<-max(rate,na.rm=T)+1
 			}
 			else{
 				rate<-rate.mat
@@ -254,8 +252,8 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			k=3
 			nl=2
 			if(is.null(rate.mat)){
-				rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
-				rate<-rate.mat$rate
+				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+				rate[is.na(rate)]<-max(rate,na.rm=T)+1
 			}
 			else{
 				rate<-rate.mat
