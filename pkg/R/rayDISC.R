@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu & Jeffrey C. Oliver
 
-rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0,ub=100){
+rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0,ub=100){
 
 	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
 	if(is.null(node.states)){
@@ -82,12 +82,17 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	nb.node <- phy$Nnode
 	
 	model=model
-	par.drop=par.drop
-	par.eq=par.eq
 	root.p=root.p	
 	ip=ip
 
-	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model,par.drop=par.drop,par.eq=par.eq)
+	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model)
+	if(!is.null(rate.mat)){
+		rate <- rate.mat
+		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
+		model.set.final$rate <- rate
+		model.set.final$index.mat <- rate.mat
+	}
+
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 
@@ -104,7 +109,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 			cat("Initializing...", "\n")
 			#Sets parameter settings for random restarts by taking the parsimony score and dividing
 			#by the total length of the tree
-			model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER",par.drop=par.drop,par.eq=par.eq)
+			model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER")
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(workingData)
 			dat<-phyDat(dat,type="USER", levels=levels(as.factor(workingData[,1])))
@@ -137,7 +142,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
-	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, charnum=charnum, par.drop=par.drop, par.eq=par.eq, root.p=root.p)
+	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, charnum=charnum, root.p=root.p)
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
@@ -261,7 +266,7 @@ dev.raydisc<-function(p,phy,liks,Q,rate,root.p){
 	}	
 }
 
-rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
+rate.cat.set.oneT<-function(phy,data,model){
 	
 	k <- 1
 	factored <- factorData(data)
@@ -270,112 +275,10 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 	nb.tip<-length(phy$tip.label)
 	nb.node <- phy$Nnode
 
-	#Using one of three pre-defined models instead of user-defined model
-	if (is.character(model)) {
-		#rate is a matrix of rate categories (not actual rates)
-		rate <- matrix(NA, nl, nl) #An nl x nl matrix, filled with NA values
-		tmp2 <- cbind(1:(nl^k), 1:(nl^k)) # For setting diagonals
-		index<-matrix(TRUE,nl^k,nl^k)
-		diag(index) <- FALSE
-		#Equal rates model, one parameter, all rate categories enumerated as '1'
-		if (model == "ER") {
-			np <- 1 #np is the number of parameters in the rate matrix
-			rate[index] <- 1:np
-			# TODO: par.drop doesnt work
-			#If par.drop is not null will adjust the rate matrix
-#			if(!is.null(par.drop)==TRUE){
-#				for(i in 1:length(par.drop)){
-#					tmp3 <- which(rate==par.drop[i], arr.ind=T)
-#					index[tmp3] <- FALSE
-#					rate[tmp3] <- 0
-#				}
-#				np <- np-length(par.drop)
-#				rate[index] <- 1:np
-#			}
-		}
-		#All rates different model, number of different parameters just nl x (nl-1)
-		#rates are enumerated up to np (e.g. for a two-state character there are 2 rate categories)
-		if (model == "ARD") {
-			np <- nl*(nl - 1)
-			rate[index] <- 1:np
-			#If par.drop is not null will adjust the rate matrix
-			if(!is.null(par.drop)==TRUE){
-				for(i in 1:length(par.drop)){
-					tmp3 <- which(rate==par.drop[i], arr.ind=T)
-					index[tmp3] <- FALSE
-					rate[tmp3] <- 0
-				}
-				np <- np-length(par.drop)
-				rate[index] <- 1:np
-			}
-			#If par.eq is not null then pairs of parameters are set equal to each other.
-			if(!is.null(par.eq)==TRUE){
-				for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-					j<-i+1
-					tmp3 <- which(rate==par.eq[j], arr.ind=T)
-					index[tmp3] <- FALSE
-					rate[tmp3] <- 0
-					np <- np-1
-					rate[index] <- 1:np
-					rate[tmp3] <- par.eq[i]
-				}
-			}
-		}
-		#Symmetrical model, like ARD, with half the values
-		if (model == "SYM") {
-			np <- nl * (nl - 1)/2
-			sel <- col(rate) < row(rate)
-			rate[sel] <- 1:np
-			#Use transpose of the rate category matrix to finish enumerating:
-			rate <- t(rate)
-			rate[sel] <- 1:np
-			#If par.drop is not null will adjust the rate matrix
-			if(!is.null(par.drop)==TRUE){
-				for(i in 1:length(par.drop)){
-					tmp3 <- which(rate==par.drop[i], arr.ind=T)
-					index[tmp3] <- FALSE
-					rate[tmp3] <- 0
-					decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
-					rate[decrement] <- rate[decrement] - 1
-				}
-				np <- np-length(par.drop)
-#				rate[index] <- 1:np # TODO: this renumbering doesnt work with symmetric rate matrix
-			}
-			#If par.eq is not null then pairs of parameters are set equal to each other.
-			if(!is.null(par.eq)==TRUE){
-				for (i  in seq(from = 1, by = 2, length.out = length(par.eq)/2)) {
-					j<-i+1
-					tmp3 <- which(rate==par.eq[j], arr.ind=T)
-					if(length(tmp3) > 0){
-						index[tmp3] <- FALSE
-						rate[tmp3] <- 0
-						np <- np-1
-#						rate[index] <- 1:np  # TODO: this renumbering doesnt work with symmetric rate matrix
-						rate[tmp3] <- par.eq[i]
-						decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
-						rate[decrement] <- rate[decrement] - 1
-					}
-				}
-			}
-		}
-
-	} else { #Using user-defined rate matrix
-		if (ncol(model) != nrow(model))
-			stop("the matrix given as `model' is not square")
-		if (ncol(model) != nl)
-			stop("the matrix `model' must have as many rows as the number of categories in `x'")
-		#Model matrix is OK, and categories should already be enumerated
-		rate <- model
-		np <- max(rate,na.rm=TRUE)
-	}
-
-	tmp <- cbind(1:nl, 1:nl) # setting diagonal to zeros
-	rate[tmp] <- 0
-
-	index.matrix <- rate
-	index.matrix[index.matrix == 0] = NA
-
-	rate[rate == 0] <- np + 1 # Got to make sure to assign np + 1 to empty rate categories
+	#rate is a matrix of rate categories (not actual rates)
+	rate<-rate.mat.maker(hrm=FALSE,ntraits=1,nstates=nl,model=model)
+	index.matrix<-rate
+	rate[is.na(rate)]<-max(rate,na.rm=T)+1
 
 	stateTable <- NULL # will hold 0s and 1s for likelihoods of each state at tip
 	for(column in 1:nl){
@@ -389,7 +292,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 
 	Q <- matrix(0, nl^k, nl^k)
 
-	obj$np<-np
+	obj$np<-max(rate)-1
 	obj$rate<-rate
 	obj$index.matrix<-index.matrix
 	obj$liks<-liks

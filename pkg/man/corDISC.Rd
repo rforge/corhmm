@@ -41,8 +41,10 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigval}{The eigenvalues from the decomposition of the Hessian of the likelihood function. If any \code{eigval<0} then one or more parameters were not optimized during the likelihood search}
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
-\example{
-#Obtain the fit for two binary characters:
+\examples{
+## Load tree and data
+data(primetes)
+## Obtain the fit for two binary characters
 pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
 pp
 }

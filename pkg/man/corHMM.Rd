@@ -43,9 +43,10 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigval}{The eigenvalues from the decomposition of the Hessian of the likelihood function. If any \code{eigval<0} then one or more parameters were not optimized during the likelihood search}
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
-\example{
+\examples{
+data(primetes)
 #Obtain the fit of second rate class underlying a binary character:
-pp<-corHMM(tree,trait,rate.cat=2,node.states="marginal", optim.method="subplex")
+pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
 pp
 }
 \author{Jeremy M. Beaulieu}

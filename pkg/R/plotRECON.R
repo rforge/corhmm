@@ -2,7 +2,7 @@
 #   plot.recons   #
 ###################
 
-plotRECON <- function(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, show.tip.label=TRUE, ...){
+plotRECON <- function(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, show.tip.label=TRUE, title=NULL, ...){
 	if(is.null(piecolors)){
 		piecolors=c("white","black","red","yellow","forestgreen","blue","coral","aquamarine","darkorchid","gold")
 	}

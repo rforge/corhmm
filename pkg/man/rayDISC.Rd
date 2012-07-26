@@ -3,19 +3,18 @@
 \title{Evolution of categorical traits}
 \description{Fits a model of evolution for categorical traits, allowing for multi-state characters, polymorphisms, missing data, and incompletely resolved trees}
 \usage{
-rayDISC(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), 
-p=NULL, par.drop=NULL, par.eq=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
+rayDISC(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), 
+p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100)
 }
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
 \item{data}{a data matrix containing species information (see Details).}
 \item{ntraits}{specifies the number of traits to included in the analysis.}
 \item{charnum}{specified the character to analyze.}
+\item{rate.mat}{a user-supplied rate matrix index of parameters to be optimized.}
 \item{model}{specifies the underlying model.} 
 \item{node.states}{method used to calculate ancestral states at internal nodes.}
 \item{p}{a vector of transition rates. Allows the user to calculate the likelihood given a specified set of parameter values to specified as fixed and calculate the likelihood.}
-\item{par.drop}{a vector of transitions to be dropped from the model. Use \code{rate.mat.index} to see what correspond to which transition.}
-\item{par.eq}{a vector of transitions pairs to be set equal. Use \code{rate.mat.index} to see what correspond to which transition.}
 \item{root.p}{a vector used to fix the probabilities at the root.}
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
@@ -66,10 +65,7 @@ The function takes a tree and a trait file and estimates the transitions among c
 
     ### Example 3
     ## Perform ancestral state estimation on third character, using a single-rate model of evolution and joint reconstruction of ancestral states
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint")
-    
-}
-\references{
+    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint") 
 }
 \author{Jeffrey C. Oliver}
 \keyword{models}

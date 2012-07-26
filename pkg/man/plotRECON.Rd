@@ -3,7 +3,7 @@
 \title{Plot ancestral state reconstructions}
 \description{Plots maximum likelihood ancestral state estimates on tree}
 \usage{
-plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, showtiplabels=TRUE,title=NULL)
+plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, show.tip.label=TRUE, title=NULL, ...)
 }
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -13,13 +13,15 @@ plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width
 \item{file}{filename to which a pdf is saved.}
 \item{height}{height of plot.}
 \item{width}{width of plot.}
-\item{showtiplabels}{a logical indicating whether to draw tip labels to tree.  The default is \code{TRUE}.}
+\item{show.tip.label}{a logical indicating whether to draw tip labels to tree.  The default is \code{TRUE}.}
 \item{title}{an optional title for the plot.}
+\item{\dots}{Additional arguments to be passed to the plot device} 
 }
 \details{
 Plots ancestral state estimates on provided tree.  The \code{likelihoods} can be the \code{states} of an object of class \code{rayDISC} or class \code{corDISC}, or the \code{lik.anc} of an object of class \code{ace} (from the \code{ape} package).
 }
 \value{
+A plot indicating the maximum likelihood ancestral states at each internal node. 
 }
 \seealso{\code{\link{corDISC}}, \code{\link{rayDISC}}}
 \examples{
@@ -34,8 +36,6 @@ Plots ancestral state estimates on provided tree.  The \code{likelihoods} can be
 
     ## Plot reconstructions on tree
     plotRECON(rayDISC.example.tree,recon$states,title="rayDISC Example")
-}
-\references{
 }
 \author{Jeffrey C. Oliver}
 \keyword{plot}
