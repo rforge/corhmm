@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100){
+corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -33,6 +33,12 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 	ip=ip
 	
 	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=rate.cat)
+	if(!is.null(rate.mat)){
+		rate <- rate.mat
+		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
+		model.set.final$rate <- rate
+		model.set.final$index.mat <- rate.mat
+	}
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 	

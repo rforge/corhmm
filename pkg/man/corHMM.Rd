@@ -3,18 +3,18 @@
 \title{Hidden Rates Model}
 \description{Estimates hidden rates underlying the evolution of a binary character}
 \usage{
-corHMM(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, par.drop=NULL, par.eq=NULL, 
-root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100)
+corHMM(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), 
+optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, 
+lb=0.00001, ub=100)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
 \item{data}{a data matrix containing species information (see Details).}
 \item{rate.cat}{specifies the number of rate categories in the HRM.} 
+\item{rate.mat}{a user-supplied rate matrix index of parameters to be optimized.}
 \item{node.states}{method used to calculate ancestral states at internal nodes (see Details).}
 \item{optim.method}{method used to perform optimization. The default is \code{subplex}.} 
 \item{p}{a vector of transition rates. Allows the user to calculate the likelihood given a specified set of parameter values to specified as fixed and calculate the likelihood.}
-\item{par.drop}{a vector of transitions to be dropped from the model. Use \code{rate.mat.index} to see what correspond to which transition.}
-\item{par.eq}{a vector of transitions pairs to be set equal. Use \code{rate.mat.index} to see what correspond to which transition.}
 \item{root.p}{a vector used to fix the probabilities at the root.}
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{nstarts}{the number of random restarts to be performed. The default is \code{nstarts=10}.}
@@ -42,6 +42,11 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$iterations}{The number of iterations used by the optimization routine.}
 \item{$eigval}{The eigenvalues from the decomposition of the Hessian of the likelihood function. If any \code{eigval<0} then one or more parameters were not optimized during the likelihood search}
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
+}
+\example{
+#Obtain the fit of second rate class underlying a binary character:
+pp<-corHMM(tree,trait,rate.cat=2,node.states="marginal", optim.method="subplex")
+pp
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}
