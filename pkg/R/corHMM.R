@@ -71,7 +71,6 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 			est.pars<-out$par
 		}
 	}
-	
 	if(optim.method=="subplex"){
 		opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 		if(!is.null(p)){
@@ -84,6 +83,7 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 		}
 		#If a user-specified starting value(s) is not supplied this begins loop through a set of randomly chosen starting values:
 		else{
+			#If a user-specified starting value(s) is supplied:
 			if(is.null(ip)){
 				if(is.null(n.cores)){
 					cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
@@ -148,14 +148,13 @@ corHMM<-function(phy, data, rate.cat, node.states=c("joint", "marginal","scaled"
 					est.pars<-out$solution
 				}
 			}
-		}
-		#If a user-specified starting value(s) is supplied:
-		if(!is.null(ip)){
-			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-			ip=ip
-			out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-			loglik <- -out$objective
-			est.pars<-out$solution
+			else{
+				cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
+				ip=ip
+				out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+				loglik <- -out$objective
+				est.pars<-out$solution
+			}			
 		}
 	}
 

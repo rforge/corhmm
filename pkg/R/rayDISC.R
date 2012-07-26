@@ -11,7 +11,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, model=c("ER","SYM","ARD"), nod
 		obj$diagnostic <- paste("No model for ancestral states selected.  Please pass one of the following to rayDISC command for parameter \'node.states\': joint, marginal, or scaled.")
 		return(obj)
 	}
-	else { # even if node.states is not NULL, need to make sure it's one of the three valid options
+	else { # even if node.states is not NULL, need to make sure its one of the three valid options
 		valid.models <- c("joint", "marginal", "scaled")
 		if(!any(valid.models == node.states)){
 			obj <- NULL
@@ -281,7 +281,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 		if (model == "ER") {
 			np <- 1 #np is the number of parameters in the rate matrix
 			rate[index] <- 1:np
-			# TODO: par.drop doesn't work
+			# TODO: par.drop doesnt work
 			#If par.drop is not null will adjust the rate matrix
 #			if(!is.null(par.drop)==TRUE){
 #				for(i in 1:length(par.drop)){
@@ -339,7 +339,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 					rate[decrement] <- rate[decrement] - 1
 				}
 				np <- np-length(par.drop)
-#				rate[index] <- 1:np # TODO: this renumbering doesn't work with symmetric rate matrix
+#				rate[index] <- 1:np # TODO: this renumbering doesnt work with symmetric rate matrix
 			}
 			#If par.eq is not null then pairs of parameters are set equal to each other.
 			if(!is.null(par.eq)==TRUE){
@@ -350,7 +350,7 @@ rate.cat.set.oneT<-function(phy,data,model,par.drop,par.eq){
 						index[tmp3] <- FALSE
 						rate[tmp3] <- 0
 						np <- np-1
-#						rate[index] <- 1:np  # TODO: this renumbering doesn't work with symmetric rate matrix
+#						rate[index] <- 1:np  # TODO: this renumbering doesnt work with symmetric rate matrix
 						rate[tmp3] <- par.eq[i]
 						decrement <- which(rate > par.drop[i],arr.ind=TRUE) # rate categories above the one to be dropped
 						rate[decrement] <- rate[decrement] - 1
