@@ -37,7 +37,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		rate <- rate.mat
 		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
 		model.set.final$rate <- rate
-		model.set.final$index.mat <- rate.mat
+		model.set.final$index.matrix <- rate.mat
 	}
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)

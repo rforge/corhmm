@@ -44,7 +44,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 		rate <- rate.mat
 		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
 		model.set.final$rate <- rate
-		model.set.final$index.mat <- rate.mat
+		model.set.final$index.matrix <- rate.mat
 	}
 	
 	lower = rep(lb, model.set.final$np)
