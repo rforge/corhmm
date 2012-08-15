@@ -243,7 +243,10 @@ rate.mat.set<-function(phy,data.sort,ntraits,model){
 		}
 	}
 	if(ntraits==3){
-		rate.mat<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+		rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
+		index.matrix<-rate
+		rate[is.na(rate)]<-max(rate,na.rm=T)+1
+		
 		x<-data.sort[,1]
 		y<-data.sort[,2]
 		z<-data.sort[,3]
