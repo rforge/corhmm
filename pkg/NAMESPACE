@@ -1,5 +1,5 @@
 export(corHMM,corDISC,rate.mat.maker,rate.par.drop,rate.par.eq,ancRECON,rayDISC,plotRECON)
-import(ape,nloptr,numDeriv,expm,corpcor,phangorn,multicore,rgenoud)
+import(ape,nloptr,numDeriv,expm,corpcor,phangorn,rgenoud)
 exportClasses('corhmm','cordisc', 'raydisc')
 
 S3method(print, corhmm)

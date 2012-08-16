@@ -130,6 +130,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 				else{
 					#Sets parameter settings for random restarts by taking the parsimony score and dividing
 					#by the total length of the tree
+					library(multicore)
 					dat<-as.matrix(data.sort)
 					dat<-phyDat(dat,type="USER", levels=c("0","1"))
 					par.score<-parsimony(phy, dat, method="fitch")/2
