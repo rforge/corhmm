@@ -95,7 +95,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	}
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
-	
+
 	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, root.p=root.p)
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
@@ -199,15 +199,15 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	}
 	root <- nb.tip + 1L	
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
+	#If root.p!=0 then will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
+	if (is.null(root.p)){
+		loglik<- -sum(log(comp[-TIPS]))
+	}
 	else{
-		#If root.p!=0 then will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
-		if (is.null(root.p)){
-			-sum(log(comp[-TIPS]))
-		}
-		else{				
-			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
-		}
-	}	
+		loglik<- -sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+		if(is.infinite(loglik)){return(1000000)}
+	}
+	loglik
 }
 
 rate.mat.set<-function(phy,data.sort,ntraits,model){

@@ -1,7 +1,8 @@
-export(corHMM,corDISC,rate.mat.maker,rate.par.drop,rate.par.eq,ancRECON,rayDISC,plotRECON)
+export(corHMM,corDISC,corDISC.paint,rate.mat.maker,rate.par.drop,rate.par.eq,ancRECON,rayDISC,plotRECON)
 import(ape,nloptr,numDeriv,expm,corpcor,phangorn,rgenoud)
-exportClasses('corhmm','cordisc', 'raydisc')
+exportClasses('corhmm','cordisc', 'raydisc', 'cordisc.paint')
 
 S3method(print, corhmm)
 S3method(print, cordisc)
 S3method(print, raydisc)
+S3method(print, cordisc.paint)
