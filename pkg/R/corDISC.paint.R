@@ -257,12 +257,13 @@ dev.cordisc.paint<-function(p,phy,liks,Q,rate,regimes,root.p){
 	else{
 		#If root.p!=0 then will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 		if (is.null(root.p)){
-			-sum(log(comp[-TIPS]))
+			loglik<--sum(log(comp[-TIPS]))
 		}
 		else{				
-			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+			loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 		}
-	}	
+	}
+	loglik
 }
 
 rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){

@@ -1,6 +1,6 @@
 Package: corHMM
-Version: 1.7
-Date: 2012-10-17
+Version: 1.8
+Date: 2012-11-13
 Title: Analysis of binary character evolution
 Author: Jeremy M. Beaulieu <jeremy.beaulieu@yale.edu>, Jeffrey C. Oliver <jeffreycoliver@gmail.com>, Brian O'Meara <bomeara@utk.edu>
 Maintainer: Jeremy M. Beaulieu <jeremy.beaulieu@yale.edu>, Jeffrey C. Oliver <jeffreycoliver@gmail.com>

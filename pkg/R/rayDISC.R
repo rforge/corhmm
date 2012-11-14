@@ -261,7 +261,7 @@ dev.raydisc<-function(p,phy,liks,Q,rate,root.p){
 			-sum(log(comp[-TIPS]))
 		}
 		else{				
-			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+			-(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 		}
 	}	
 }

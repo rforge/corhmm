@@ -5,7 +5,7 @@
 \usage{
 corDISC(phy,data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), 
 node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, 
-lb=0, ub=100)
+lb=0, ub=100, diagn=TRUE)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -19,6 +19,7 @@ lb=0, ub=100)
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0.00001}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
+\item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
 The function takes a tree and a trait file and estimates the transitions between a two or three binary characters. The first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. 
@@ -42,11 +43,12 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
 \examples{
+##Not run
 ## Load tree and data
 data(primetes)
 ## Obtain the fit for two binary characters
-pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
-pp
+#pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
+#pp
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}

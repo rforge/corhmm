@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100){
+corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100, diagn=TRUE){
 	
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
@@ -189,10 +189,20 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
 	#Approximates the Hessian using the numDeriv function
-	h <- hessian(func=dev.corhmm, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-	
+	if(diagn==TRUE){
+		h <- hessian(func=dev.corhmm, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		hess.eig <- eigen(h,symmetric=TRUE)
+		eigval<-signif(hess.eig$values,2)
+		eigvect<-round(hess.eig$vectors, 2)		
+	}
+	else{
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(0,dim(solution)[1],dim(solution)[1])
+		eigval<-NULL
+		eigvect<-NULL
+	}
 	if (rate.cat == 1){
 		rownames(solution) <- rownames(solution.se) <- c("(0)","(1)")
 		colnames(solution) <- colnames(solution.se) <- c("(0)","(1)")			
@@ -239,9 +249,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 			}
 		}
 	}
-	hess.eig <- eigen(h,symmetric=TRUE)
-	eigval<-signif(hess.eig$values,2)
-	eigvect<-round(hess.eig$vectors, 2)
+	
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),rate.cat=rate.cat,solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"corhmm"
 	return(obj)
@@ -312,14 +320,16 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
 		if (is.null(root.p)){
-			-sum(log(comp[-TIPS]))
+			loglik<--sum(log(comp[-TIPS]))
 		}
 		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 		else{				
 			#Interesting development -- must have a non-zero rate in order to properly fix the root!
-			-sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+			loglik<--(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
+			if(is.infinite(loglik)){return(1000000)}
 		}
-	}	
+	}
+	loglik
 }
 
 rate.cat.set<-function(phy,data.sort,rate.cat){

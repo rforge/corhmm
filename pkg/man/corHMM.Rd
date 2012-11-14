@@ -5,7 +5,7 @@
 \usage{
 corHMM(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), 
 optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, 
-lb=0.00001, ub=100)
+lb=0.00001, ub=100, diagn=TRUE)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -21,6 +21,7 @@ lb=0.00001, ub=100)
 \item{n.cores}{the number of processor cores to spread out the random restarts.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0.00001}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
+\item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
 The function takes a tree and a trait file and estimates the transitions between a binary character using the hidden rate model. The first column of the trait file must contain the species labels to match to the tree, with the second corresponding to the binary trait of interest. Can test models that assume 1, 2, 3, 4, or 5 rate categories underlying the observed data. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root.. 
@@ -44,10 +45,11 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
 \examples{
-data(primetes)
+#Not run
+#data(primetes)
 #Obtain the fit of second rate class underlying a binary character:
-pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
-pp
+#pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
+#pp
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}

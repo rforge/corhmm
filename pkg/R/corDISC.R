@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100){
+corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100, diagn=TRUE){
 	
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
@@ -22,7 +22,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	if(ub < 0){
 		ub <- 100
 	}
-	if(lb < 0){
+	if(lb <= 0){
 		lb <- 0
 	}
 	if(ub < lb){ # This user really needs help
@@ -67,7 +67,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 			#Sets parameter settings for random restarts by taking the parsimony score and dividing
 			#by the total length of the tree
 			model.set.init<-rate.mat.set(phy,data.sort,ntraits,model="ER")
-			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.5)
 			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
 			par.score<-parsimony(phy, dat, method="fitch")
@@ -87,7 +87,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 		#If a user-specified starting value(s) is supplied:
 		else{
 			cat("Begin subplex optimization routine -- Starting value(s):", ip, "\n")
-			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.5)
 			out = nloptr(x0=rep(ip, length.out = model.set.final$np), eval_f=dev.cordisc, lb=lower, ub=upper, opts=opts)
 			loglik <- -out$objective
 			est.pars<-out$solution
@@ -110,9 +110,21 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
 	#Approximates the Hessian using the numDeriv function
-	h <- hessian(func=dev.cordisc, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+
+	if(diagn==TRUE){
+		h <- hessian(func=dev.cordisc, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		hess.eig <- eigen(h,symmetric=TRUE)
+		eigval<-signif(hess.eig$values,2)
+		eigvect<-round(hess.eig$vectors, 2)		
+	}
+	else{
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(0,dim(solution)[1],dim(solution)[1])
+		eigval<-NULL
+		eigvect<-NULL	
+	}
 	
 	if(ntraits==2){
 		rownames(solution) <- rownames(solution.se) <- c("(0,0)","(0,1)","(1,0)","(1,1)")
@@ -132,9 +144,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 			}
 		}
 	}
-	hess.eig <- eigen(h,symmetric=TRUE)
-	eigval<-signif(hess.eig$values,2)
-	eigvect<-round(hess.eig$vectors, 2)
+
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"cordisc"
 	return(obj)
@@ -180,7 +190,6 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	anc <- unique(phy$edge[,1])
 	
 	if (any(is.nan(p)) || any(is.infinite(p))) return(1000000)
-	
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)	
 	
@@ -204,7 +213,7 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 		loglik<- -sum(log(comp[-TIPS]))
 	}
 	else{
-		loglik<- -sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,]))
+		loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 		if(is.infinite(loglik)){return(1000000)}
 	}
 	loglik
