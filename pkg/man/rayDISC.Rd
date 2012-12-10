@@ -61,7 +61,7 @@ The function takes a tree and a trait file and estimates the transitions among c
 
     ### Example 2
     ## Perform ancestral state estimation on second character, using a single-rate model of evolution, marginal reconstruction of ancestral states, and setting the lower bound for parameter estimates to 0.01
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=2,model="ER",node.states="marginal",lb=0.01)
+    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=2,model="ER",node.states="marginal",lb=0.008)
 
     ### Example 3
     ## Perform ancestral state estimation on third character, using a single-rate model of evolution and joint reconstruction of ancestral states
