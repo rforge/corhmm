@@ -46,26 +46,27 @@ The function takes a tree and a trait file and estimates the transitions among c
 }
 \seealso{\code{\link{plotRECON}}}
 \examples{
+    # Not run
     ### Example 1
     ## Load tree
-    data(rayDISC.example.tree)
+    #data(rayDISC.example.tree)
 
     ## Load tip data
-    data(rayDISC.example.data)
+    #data(rayDISC.example.data)
 
     ## Perform ancestral state estimation, using an asymmetric model of evolution and marginal reconstruction of ancestral states
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ARD",node.states="marginal")
+    #recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ARD",node.states="marginal")
 
     ## Plot reconstructions on tree
-    plotRECON(rayDISC.example.tree,recon$states)
+    #plotRECON(rayDISC.example.tree,recon$states)
 
     ### Example 2
     ## Perform ancestral state estimation on second character, using a single-rate model of evolution, marginal reconstruction of ancestral states, and setting the lower bound for parameter estimates to 0.01
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=2,model="ER",node.states="marginal",lb=0.008)
+    #recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=2,model="ER",node.states="marginal",lb=0.008)
 
     ### Example 3
     ## Perform ancestral state estimation on third character, using a single-rate model of evolution and joint reconstruction of ancestral states
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint") 
+    #recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint") 
 }
-\author{Jeffrey C. Oliver}
+\author{Jeffrey C. Oliver and Jeremy M. Beaulieu}
 \keyword{models}
