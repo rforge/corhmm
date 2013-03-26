@@ -17,12 +17,12 @@ lb=0, ub=100, diagn=TRUE)
 \item{p}{a vector of transition rates. Allows the user to calculate the likelihood given a specified set of parameter values to specified as fixed and calculate the likelihood.}
 \item{root.p}{a vector used to fix the probabilities at the root.}
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
-\item{lb}{lower bound for the likelihood search. The default is \code{lb=0.00001}.}
+\item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
 \item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
-The function takes a tree and a trait file and estimates the transitions between a two or three binary characters. The first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. 
+The function takes a tree and a trait file and estimates the transitions between a two or three binary characters. The first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The user can fix the root state probabilities by supplying a vector to the \code{root.p}. Also, the input phylogeny need not be bifurcating as the algorithm implemented can easily handle multifucations. Note that rayDISC can be used to evaluate the same models are in corDISC. The difference is that with rayDISC the rate matrix would have to be manipulated in order to remove parameters associated with dual transitions. 
 }
 \value{
 \code{corDISC} returns an object of class \code{corDISC}. This is a list with elements:
@@ -43,12 +43,15 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
 \examples{
-##Not run
-## Load tree and data
-data(primetes)
-## Obtain the fit for two binary characters
-#pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
-#pp
+# Not run
+# Load tree and data
+# data(primates)
+# Obtain the fit for two binary characters
+# pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
+# pp
+}
+\references{
+Beaulieu J.M., and M.J. Donoghue 2013. Fruit evolution and diversification in campanulid angiosperms. Evolution In revision.
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}

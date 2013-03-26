@@ -2,12 +2,62 @@
 
 #written by Jeremy M. Beaulieu
 
-corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0.00001, ub=100, diagn=TRUE){
+corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0, ub=100, diagn=TRUE){
 	
+	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
+	if(is.null(node.states)){
+		obj <- NULL
+		obj$loglik <- NULL
+		obj$diagnostic <- paste("No model for ancestral states selected.  Please pass one of the following to corHMM command for parameter \'node.states\': joint, marginal, or scaled.")
+		return(obj)
+	}
+	else { # even if node.states is not NULL, need to make sure its one of the three valid options
+		valid.models <- c("joint", "marginal", "scaled")
+		if(!any(valid.models == node.states)){
+			obj <- NULL
+			obj$loglik <- NULL
+			obj$diagnostic <- paste("\'",node.states, "\' is not valid for ancestral state reconstruction method.  Please pass one of the following to corHMM command for parameter \'node.states\': joint, marginal, or scaled.",sep="")
+			return(obj)
+		}
+		if(length(node.states) > 1){ # User did not enter a value, so just pick marginal.
+			node.states <- "marginal"
+			cat("No model selected for \'node.states\'. Will perform marginal ancestral state estimation.\n")
+		}
+	}
+	
+	# Checks to make sure phy & data have same taxa.  Fixes conflicts (see match.tree.data function).
+	matching <- match.tree.data(phy,data) 
+	data <- matching$data
+	phy <- matching$phy
+	
+	# Wont perform reconstructions on invariant characters
+	if(nlevels(as.factor(data[,1])) <= 1){
+		obj <- NULL
+		obj$loglik <- NULL
+		obj$diagnostic <- paste("Character is invariant. Analysis stopped.",sep="")
+		return(obj)
+	} else {
+		# Still need to make sure second level isnt just an ambiguity
+		lvls <- as.factor(data[,1])
+		if(nlevels(as.factor(data[,1])) == 2 && length(which(lvls == "?"))){
+			obj <- NULL
+			obj$loglik <- NULL
+			obj$diagnostic <- paste("Character is invariant. Analysis stopped.",sep="")
+			return(obj)
+		}
+	}
+
 	#Creates the data structure and orders the rows to match the tree. 
 	phy$edge.length[phy$edge.length<=1e-5]=1e-5
 	data.sort <- data.frame(data[,2], data[,2],row.names=data[,1])
 	data.sort <- data.sort[phy$tip.label,]
+
+	counts <- table(data.sort[,1])
+	levels <- levels(as.factor(data.sort[,1]))
+	cols <- as.factor(data.sort[,1])
+	cat("State distribution in data:\n")
+	cat("States:",levels,"\n",sep="\t")
+	cat("Counts:",counts,"\n",sep="\t")
 
 	#Some initial values for use later
 	k=2
@@ -130,7 +180,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 				else{
 					#Sets parameter settings for random restarts by taking the parsimony score and dividing
 					#by the total length of the tree
-					library(multicore)
+					cat("Begin thorough optimization search -- performing", nstarts, "random restarts", "\n")
 					dat<-as.matrix(data.sort)
 					dat<-phyDat(dat,type="USER", levels=c("0","1"))
 					par.score<-parsimony(phy, dat, method="fitch")/2
@@ -324,7 +374,6 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		}
 		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 		else{				
-			#Interesting development -- must have a non-zero rate in order to properly fix the root!
 			loglik<--(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 			if(is.infinite(loglik)){return(1000000)}
 		}

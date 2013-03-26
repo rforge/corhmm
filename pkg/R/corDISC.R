@@ -4,9 +4,34 @@
 
 corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100, diagn=TRUE){
 	
+	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
+	if(is.null(node.states)){
+		obj <- NULL
+		obj$loglik <- NULL
+		obj$diagnostic <- paste("No model for ancestral states selected.  Please pass one of the following to corDISC command for parameter \'node.states\': joint, marginal, or scaled.")
+		return(obj)
+	}
+	else { # even if node.states is not NULL, need to make sure its one of the three valid options
+		valid.models <- c("joint", "marginal", "scaled")
+		if(!any(valid.models == node.states)){
+			obj <- NULL
+			obj$loglik <- NULL
+			obj$diagnostic <- paste("\'",node.states, "\' is not valid for ancestral state reconstruction method.  Please pass one of the following to corDISC command for parameter \'node.states\': joint, marginal, or scaled.",sep="")
+			return(obj)
+		}
+		if(length(node.states) > 1){ # User did not enter a value, so just pick marginal.
+			node.states <- "marginal"
+			cat("No model selected for \'node.states\'. Will perform marginal ancestral state estimation.\n")
+		}
+	}
+
+	# Checks to make sure phy & data have same taxa.  Fixes conflicts (see match.tree.data function).
+	matching <- match.tree.data(phy,data) 
+	data <- matching$data
+	phy <- matching$phy
+
 	#Creates the data structure and orders the rows to match the tree
 	phy$edge.length[phy$edge.length==0]=1e-5
-	
 	if(ntraits==2){
 		data.sort<-data.frame(data[,2], data[,3], row.names=data[,1])
 	}
@@ -15,9 +40,63 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	}
 	data.sort<-data.sort[phy$tip.label,]
 	#Some initial values for use later - will clean up
+	nb.tip<-length(phy$tip.label)
+	nb.node <- phy$Nnode
 	k=ntraits
 	nl=2
-	
+
+	#Some pre-processing code in order to print totals to the screen:
+	if(dim(data.sort)[2]==2){
+		x<-data.sort[,1]
+		y<-data.sort[,2]
+		liks.tmp <- matrix(0, nb.tip, nl^k)
+		for(i in 1:nb.tip){
+			if(is.na(x[i])){
+				x[i]=2
+				y[i]=2
+			}
+		}
+		for(i in 1:nb.tip){
+			if(x[i]==0 & y[i]==0){liks.tmp[i,1]=1}
+			if(x[i]==0 & y[i]==1){liks.tmp[i,2]=1}
+			if(x[i]==1 & y[i]==0){liks.tmp[i,3]=1}
+			if(x[i]==1 & y[i]==1){liks.tmp[i,4]=1}
+			if(x[i]==2 & y[i]==2){liks.tmp[i,1:4]=1}
+		}
+		
+	}
+	if(dim(data.sort)[2]==3){
+		x<-data.sort[,1]
+		y<-data.sort[,2]
+		z<-data.sort[,3]
+		liks.tmp <- matrix(0, nb.tip, nl^k)
+		for(i in 1:nb.tip){
+			if(is.na(x[i])){
+				x[i]=2
+				y[i]=2
+				z[i]=2
+			}
+		}
+		for(i in 1:nb.tip){
+			if(x[i]==0 & y[i]==0 & z[i]==0){liks.tmp[i,1]=1}
+			if(x[i]==1 & y[i]==0 & z[i]==0){liks.tmp[i,2]=1}
+			if(x[i]==0 & y[i]==1 & z[i]==0){liks.tmp[i,3]=1}
+			if(x[i]==0 & y[i]==0 & z[i]==1){liks.tmp[i,4]=1}
+			if(x[i]==1 & y[i]==1 & z[i]==0){liks.tmp[i,5]=1}
+			if(x[i]==1 & y[i]==0 & z[i]==1){liks.tmp[i,6]=1}
+			if(x[i]==0 & y[i]==1 & z[i]==1){liks.tmp[i,7]=1}
+			if(x[i]==1 & y[i]==1 & z[i]==1){liks.tmp[i,8]=1}
+			if(x[i]==2 & y[i]==2 & z[i]==2){liks.tmp[i,1:8]=1}
+		}
+	}
+	working.data<-apply(liks.tmp,1,which.max)
+	counts <- table(working.data)
+	levels <- levels(as.factor(working.data))
+	cols <- as.factor(working.data)
+	cat("State distribution in data:\n")
+	cat("States:",levels,"\n",sep="\t")
+	cat("Counts:",counts,"\n",sep="\t")
+
 	# Check to make sure values are reasonable (i.e. non-negative)
 	if(ub < 0){
 		ub <- 100
@@ -31,9 +110,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	}
 
 	obj <- NULL
-	nb.tip<-length(phy$tip.label)
-	nb.node <- phy$Nnode
-	
+
 	ntraits=ntraits
 	model=model
 	root.p=root.p	
@@ -50,7 +127,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	lower = rep(lb, model.set.final$np)
 	upper = rep(ub, model.set.final$np)
 	
-	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
+	opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.5)
 	
 	if(!is.null(p)){
 		cat("Calculating likelihood from a set of fixed parameters", "\n")
@@ -177,7 +254,6 @@ print.cordisc<-function(x,...){
 		cat("Arrived at a reliable solution","\n")
 	}
 }
-
 
 dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	

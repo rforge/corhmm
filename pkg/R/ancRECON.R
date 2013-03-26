@@ -28,9 +28,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 	obj <- NULL
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
-	
-	root.p=root.p
-	
+
 	#Builds the rate matrix based on the specified rate.cat. Not exactly the best way
 	#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if(hrm==TRUE){

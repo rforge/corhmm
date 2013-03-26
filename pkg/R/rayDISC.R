@@ -37,7 +37,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 	if(nlevels(as.factor(data[,charnum+1])) <= 1){
 		obj <- NULL
 		obj$loglik <- NULL
-		obj$diagnostic <- paste("Character ",charnum," is invariant.  Reconstructions stopped.",sep="")
+		obj$diagnostic <- paste("Character ",charnum," is invariant. Analysis stopped.",sep="")
 		return(obj)
 	} else {
 		# Still need to make sure second level isnt just an ambiguity
@@ -45,7 +45,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 		if(nlevels(as.factor(data[,charnum+1])) == 2 && length(which(lvls == "?"))){
 			obj <- NULL
 			obj$loglik <- NULL
-			obj$diagnostic <- paste("Character ",charnum," is invariant.  Reconstructions stopped.",sep="")
+			obj$diagnostic <- paste("Character ",charnum," is invariant. Analysis stopped.",sep="")
 			return(obj)
 		}
 	}
@@ -54,14 +54,14 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 	workingData <- workingData[phy$tip.label,] # this might have already been done by match.tree.data	
 
 	counts <- table(workingData[,1])
-	levels <- levels(workingData[,1])
+	levels <- levels(as.factor(workingData[,1]))
 	cols <- as.factor(workingData[,1])
 	cat("State distribution in data:\n")
 	cat("States:",levels,"\n",sep="\t")
 	cat("Counts:",counts,"\n",sep="\t")
 	#Some initial values for use later - will clean up
 	k <- 1 # Only one trait allowed
-	factored <- factorData(workingData) # just factoring to figure out how many levels (i.e. number of states) in data.
+	factored <- factorData(workingData,charnum=charnum) # just factoring to figure out how many levels (i.e. number of states) in data.
 	nl <- ncol(factored)
 	state.names <- colnames(factored) # for subsequent reporting
 	bound.hit <- FALSE # to keep track of whether min.rate is one of the rate estimates (and thus, potentially a non-optimal rate)
@@ -85,7 +85,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 	root.p=root.p	
 	ip=ip
 
-	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model)
+	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model,charnum=charnum)
 	if(!is.null(rate.mat)){
 		rate <- rate.mat
 		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
@@ -109,7 +109,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 			cat("Initializing...", "\n")
 			#Sets parameter settings for random restarts by taking the parsimony score and dividing
 			#by the total length of the tree
-			model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER")
+			model.set.init<-rate.cat.set.oneT(phy=phy,data=workingData,model="ER",charnum=charnum)
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(workingData)
 			dat<-phyDat(dat,type="USER", levels=levels(as.factor(workingData[,1])))
@@ -266,10 +266,10 @@ dev.raydisc<-function(p,phy,liks,Q,rate,root.p){
 	}	
 }
 
-rate.cat.set.oneT<-function(phy,data,model){
+rate.cat.set.oneT<-function(phy,data,model,charnum){
 	
 	k <- 1
-	factored <- factorData(data)
+	factored <- factorData(data, charnum=charnum)
 	nl <- ncol(factored)
 	obj <- NULL
 	nb.tip<-length(phy$tip.label)
@@ -377,7 +377,7 @@ match.tree.data <- function(phy, data){
 ##############
 # A function to find positions of ampersands for separating different states.  
 # Will allow character state to be greater than one character long.
-findAmps <- function(string){
+findAmps <- function(string, charnum){
 	if(!is.character(string)) return(NULL)
 	locs <- NULL # Will hold location values
 	for(charnum in 1:nchar(as.character(string))){
@@ -392,7 +392,7 @@ findAmps <- function(string){
 # factorData #
 ##############
 # Function to make factored matrix as levels are discovered.
-factorData <- function(data,whichchar=1){
+factorData <- function(data,whichchar=1,charnum){
 	charcol <- whichchar+1
 	factored <- NULL # will become the matrix.  Starts with no data.
 	lvls <- NULL
@@ -402,7 +402,7 @@ factorData <- function(data,whichchar=1){
 	for(row in 1:numrows){
 		currlvl <- NULL
 		levelstring <- as.character(data[row,charcol])
-		ampLocs <- findAmps(levelstring)
+		ampLocs <- findAmps(levelstring, charnum)
 		if(length(ampLocs) == 0){ #No ampersands, character is monomorphic
 			currlvl <- levelstring
 			if(currlvl == "?" || currlvl == "-"){ # Check for missing data
@@ -457,7 +457,7 @@ factorData <- function(data,whichchar=1){
 			}
 		}
 	}
-	# Need to deal with any rows with missing data; fill in NA for all columns for that row
+	#Need to deal with any rows with missing data; fill in NA for all columns for that row
 	for(missingrows in 1:length(missing)){
 		for(column in 1:length(factored[1,])){
 			factored[missing[missingrows],column] <- 1 # All states equally likely

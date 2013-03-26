@@ -3,7 +3,8 @@
 \title{Plot ancestral state reconstructions}
 \description{Plots maximum likelihood ancestral state estimates on tree}
 \usage{
-plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, width=8.5, show.tip.label=TRUE, title=NULL, ...)
+plotRECON(phy, likelihoods, piecolors=NULL, cex=0.5, file=NULL, height=11, 
+width=8.5, show.tip.label=TRUE, title=NULL, ...)
 }
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -25,17 +26,15 @@ A plot indicating the maximum likelihood ancestral states at each internal node.
 }
 \seealso{\code{\link{corDISC}}, \code{\link{rayDISC}}}
 \examples{
-    ## Load tree
-    data(rayDISC.example.tree)
-
-    ## Load data
-    data(rayDISC.example.data)
-
-    ## Perform ancestral state estimation, using a single rate of evolution and marginal reconstruction of ancestral states
-    recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ER",node.states="marginal")
-
-    ## Plot reconstructions on tree
-    plotRECON(rayDISC.example.tree,recon$states,title="rayDISC Example")
+# Not run
+# Load tree
+# data(rayDISC.example.tree)
+# Load data
+# data(rayDISC.example.data)
+# Perform ancestral state estimation, using a single rate of evolution and marginal reconstruction of ancestral states
+# recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ER",node.states="marginal")
+# Plot reconstructions on tree
+# plotRECON(rayDISC.example.tree,recon$states,title="rayDISC Example")
 }
 \author{Jeffrey C. Oliver}
 \keyword{plot}

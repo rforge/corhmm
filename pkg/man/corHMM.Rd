@@ -5,7 +5,7 @@
 \usage{
 corHMM(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), 
 optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, 
-lb=0.00001, ub=100, diagn=TRUE)
+lb=0, ub=100, diagn=TRUE)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -19,12 +19,14 @@ lb=0.00001, ub=100, diagn=TRUE)
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{nstarts}{the number of random restarts to be performed. The default is \code{nstarts=10}.}
 \item{n.cores}{the number of processor cores to spread out the random restarts.}
-\item{lb}{lower bound for the likelihood search. The default is \code{lb=0.00001}.}
+\item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
 \item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
-The function takes a tree and a trait file and estimates the transitions between a binary character using the hidden rate model. The first column of the trait file must contain the species labels to match to the tree, with the second corresponding to the binary trait of interest. Can test models that assume 1, 2, 3, 4, or 5 rate categories underlying the observed data. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root.. 
+The function takes a tree and a trait file and estimates the transitions between a binary character using the hidden rates model (HRM). The HRM is a generalization of the covarion model that allows different rate classes to be treated as "hidden" states in reconstructing ancestral character states. For example, for a model with two rate classes, fast and slow, underlying each observed state of 0 and 1. Since we only observe states, we treat each observation as having a probability of 1 for being either in the F and S categories. In other words, a character state 0 at a tip is assumed to have a probability of 1 for being 0_S and 0_F.
+
+The first column of the trait file must contain the species labels to match to the tree, with the second corresponding to the binary trait of interest. Can evaluate models that assume 1, 2, 3, 4, or 5 rate categories underlying the observed data. The user can fix the root state probabilities by supplying a vector to the \code{root.p}. We also note that the state and rates reconstructed at internal nodes are in the order of the column headings of the rates matrix. Also, the input phylogeny need not be bifurcating as the algorithm implemented can easily handle multifucations. 
 }
 \value{
 \code{corHMM} returns an object of class \code{corHMM}. This is a list with elements:
@@ -45,11 +47,14 @@ The function takes a tree and a trait file and estimates the transitions between
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
 \examples{
-#Not run
-#data(primetes)
-#Obtain the fit of second rate class underlying a binary character:
-#pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
-#pp
+## Not run
+## data(primetes)
+## Obtain the fit of second rate class underlying a binary character:
+## pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
+## pp
+}
+\references{
+Beaulieu J.M., B.C. O'Meara, and M.J. Donoghue 2013. Identifying hidden rate changes in the evolution of a binary morphological character: the evolution of plant habit in campanulid angiosperms. Systematic Biology In press.
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}
