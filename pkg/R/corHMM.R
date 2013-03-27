@@ -374,7 +374,7 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		}
 		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
 		else{				
-			loglik<--(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
+			loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 			if(is.infinite(loglik)){return(1000000)}
 		}
 	}
