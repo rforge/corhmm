@@ -31,8 +31,10 @@ A plot indicating the maximum likelihood ancestral states at each internal node.
 # data(rayDISC.example.tree)
 # Load data
 # data(rayDISC.example.data)
-# Perform ancestral state estimation, using a single rate of evolution and marginal reconstruction of ancestral states
-# recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ER",node.states="marginal")
+# Perform ancestral state estimation, using a single rate of evolution and marginal 
+# reconstruction of ancestral states
+# recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,model="ER",
+# node.states="marginal")
 # Plot reconstructions on tree
 # plotRECON(rayDISC.example.tree,recon$states,title="rayDISC Example")
 }

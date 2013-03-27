@@ -10,7 +10,7 @@ lb=0, ub=100, diagn=TRUE)
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
 \item{data}{a data matrix containing species information (see Details).}
-\item{ntraits}{specifies the number of traits to included in the analysis.}
+\item{ntraits}{specifies the number of traits to be included in the analysis.}
 \item{rate.mat}{a user-supplied rate matrix index of parameters to be optimized.}
 \item{model}{specifies the underlying model.} 
 \item{node.states}{method used to calculate ancestral states at internal nodes (see Details).}
@@ -22,7 +22,9 @@ lb=0, ub=100, diagn=TRUE)
 \item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
-The function takes a tree and a trait file and estimates the transitions between a two or three binary characters. The first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The user can fix the root state probabilities by supplying a vector to the \code{root.p}. Also, the input phylogeny need not be bifurcating as the algorithm implemented can easily handle multifucations. Note that rayDISC can be used to evaluate the same models are in corDISC. The difference is that with rayDISC the rate matrix would have to be manipulated in order to remove parameters associated with dual transitions. 
+The function takes a tree and a trait file and estimates the transitions between a two or three binary characters (see Pagel 1994). Note that rayDISC can be used to evaluate the same models as in corDISC. The major difference is that with rayDISC the rate matrix would have to be manipulated using \code{rate.mat.maker} in order to remove parameters associated with dual transitions. With corDISC, the first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The user can fix the root state probabilities by supplying a vector to \code{root.p}. For example, in the two trait case, if the hypothesis is that the root is 00, then the root vector would be \code{root.p=c(1,0,0,0)} for state combinations 00, 01, 10, and 11, respectively. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case.  
+
+We also note that scoring information that is missing for a species can be incorporated in the analysis by including an NA for that particular trait. corDISC will then set the trait vector so that the tip vector will reflect the probabilities that are compatible with our observations. For example, if the scoring for trait 1 is missing, but trait 2 is scored as 0, then the tip vector would be (1,0,1,0), for state combinations 00, 01, 10, and 11 respectively, given our observation that trait 2 is scored 0 (for a good discussion see Felsenstein 2004).
 }
 \value{
 \code{corDISC} returns an object of class \code{corDISC}. This is a list with elements:
@@ -52,6 +54,12 @@ The function takes a tree and a trait file and estimates the transitions between
 }
 \references{
 Beaulieu J.M., and M.J. Donoghue 2013. Fruit evolution and diversification in campanulid angiosperms. Evolution In revision.
+
+Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.
+
+Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates.
+
+Pagel, M. 1994. Detecting correlated evolution on phylogenies: a general method for the comparative analysis of discrete characters. Proceedings of the Royal Society, B. 255:37-45.
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}

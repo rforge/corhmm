@@ -26,7 +26,7 @@ lb=0, ub=100, diagn=TRUE)
 \details{
 The function takes a tree and a trait file and estimates the transitions between a binary character using the hidden rates model (HRM). The HRM is a generalization of the covarion model that allows different rate classes to be treated as "hidden" states in reconstructing ancestral character states. For example, for a model with two rate classes, fast and slow, underlying each observed state of 0 and 1. Since we only observe states, we treat each observation as having a probability of 1 for being either in the F and S categories. In other words, a character state 0 at a tip is assumed to have a probability of 1 for being 0_S and 0_F. The likelihood function is maximized using the bounded subplex optimization routine (\code{optim.method=subplex}). The R package \code{nloptr} provides a common interface to NLopt, an open-source library for nonlinear optimization, the default optimization routine. Users can also set \code{optim.method=rgenoud} to specify that likelihood function is to maximized using a genetic algorithm. In the former case, however, it is recommended that \code{nstarts} is set to a large value (e.g. 100) to ensure that the maximum likelihood solution is found. Also, a user can set \code{n.cores} in order to parse the random restarts onto multiple processors.
 
-The first column of the trait file must contain the species labels to match to the tree, with the second corresponding to the binary trait of interest. Can evaluate models that assume 1, 2, 3, 4, or 5 rate categories underlying the observed data. The user can fix the root state probabilities by supplying a vector to the \code{root.p}. We also note that the state and rates reconstructed at internal nodes are in the order of the column headings of the rates matrix. Also, the input phylogeny need not be bifurcating as the algorithm implemented can easily handle multifucations.  
+The first column of the trait file must contain the species labels to match to the tree, with the second corresponding to the binary trait of interest. Can evaluate models that assume 1, 2, 3, 4, or 5 rate categories underlying the observed data. The user can fix the root state probabilities by supplying a vector to \code{root.p}. For example, in a model with two hidden rates, if the hypothesis is that the root is 0_S, then the root vector would be \code{root.p=c(1,0,0,0)} for state combinations 0_S, 1_S, 0_F, and 1_F, respectively. We also note that the state and rates reconstructed at internal nodes are in the order of the column headings of the rates matrix. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case.  
 }
 \value{
 \code{corHMM} returns an object of class \code{corHMM}. This is a list with elements:
@@ -48,13 +48,17 @@ The first column of the trait file must contain the species labels to match to t
 }
 \examples{
 ## Not run
-## data(primetes)
+## data(primates)
 ## Obtain the fit of second rate class underlying a binary character:
 ## pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
 ## pp
 }
 \references{
 Beaulieu J.M., B.C. O'Meara, and M.J. Donoghue 2013. Identifying hidden rate changes in the evolution of a binary morphological character: the evolution of plant habit in campanulid angiosperms. Systematic Biology In press.
+
+Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.
+
+Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates. 
 }
 \author{Jeremy M. Beaulieu}
 \keyword{models}

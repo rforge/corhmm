@@ -22,7 +22,9 @@ lb=0, ub=100)
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
 }
 \details{
-The function takes a tree and a trait file and estimates the transitions among character states. The first column of the trait file must contain the species labels to match to the tree, with the second, third, fourth, and so on, corresponding to the traits of interest. Use the \code{charnum} variable to select the trait for analysis. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. 
+The function takes a tree and a trait file and estimates transition rates among binary or mulitstate characters. The first column of the trait file must contain the species labels to match to the tree, with the second, third, fourth, and so on, corresponding to the traits of interest. Use the \code{charnum} variable to select the trait for analysis. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case. 
+
+The user can fix the root state probabilities by supplying a vector to the \code{root.p}. GIVE AN EXAMPLE OF HOW ROOT.P IS USED. ALSO ADD IN BIT ABOUT HOW POLYMORPHISMS AND OR MISSING DATA CAN BE INCLUDED HERE.
 }
 \value{
 \code{rayDISC} returns an object of class \code{rayDISC}. This is a list with elements:
@@ -73,6 +75,11 @@ The function takes a tree and a trait file and estimates the transitions among c
 ## Perform ancestral state estimation on third character, using a single-rate model of 
 ## evolution and joint reconstruction of ancestral states
 #recon <- rayDISC(rayDISC.example.tree,rayDISC.example.data,charnum=3,model="ER",node.states="joint") 
+}
+\references{
+Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.
+
+Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates. 
 }
 \author{Jeffrey C. Oliver and Jeremy M. Beaulieu}
 \keyword{models}
