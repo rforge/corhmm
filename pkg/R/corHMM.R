@@ -372,10 +372,25 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		if (is.null(root.p)){
 			loglik<--sum(log(comp[-TIPS]))
 		}
-		#root.p!=NULL, will fix root probabilities according to FitzJohn et al 2009 Eq. 10.
-		else{				
-			loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
-			if(is.infinite(loglik)){return(1000000)}
+		else{
+			#root.p==madfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
+			if(root.p == "madfitz"){				
+				equil.root <- NULL
+				for(i in 1:ncol(Q)){
+					posrows <- which(Q[,i] >= 0)
+					rowsum <- sum(Q[posrows,i])
+					poscols <- which(Q[i,] >= 0)
+					colsum <- sum(Q[i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+				}
+				loglik<- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
+				if(is.infinite(loglik)){return(1000000)}
+			}
+			#root.p!==NULL will fix root probabilities based on user supplied vector:
+			else{
+				loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
+				if(is.infinite(loglik)){return(1000000)}
+			}
 		}
 	}
 	loglik
