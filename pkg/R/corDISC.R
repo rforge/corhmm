@@ -291,7 +291,7 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 			loglik <- -sum(log(comp[-TIPS]))
 		}
 		else{
-			#root.p==madfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
+			#root.p==maddfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
 			if(is.character(root.p)){				
 				equil.root <- NULL
 				for(i in 1:ncol(Q)){
