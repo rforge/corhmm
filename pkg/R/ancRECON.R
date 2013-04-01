@@ -227,18 +227,24 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 						#This is the basic marginal calculation:
 						root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 					}
-					equil.root <- NULL
-					for(i in 1:ncol(Q)){
-						posrows <- which(Q[,i] >= 0)
-						rowsum <- sum(Q[posrows,i])
-						poscols <- which(Q[i,] >= 0)
-						colsum <- sum(Q[i,poscols])
-						equil.root <- c(equil.root,rowsum/(rowsum+colsum))
-					}
-					liks[focal, ] <- (root.state/sum(root.state)) * equil.root
+					liks[focal, ] <- root.state/sum(root.state)
 				}
 				else{
-					liks[focal, ] <- root.p
+					if(is.character(root.p)){
+						equil.root <- NULL
+						for(i in 1:ncol(Q)){
+							posrows <- which(Q[,i] >= 0)
+							rowsum <- sum(Q[posrows,i])
+							poscols <- which(Q[i,] >= 0)
+							colsum <- sum(Q[i,poscols])
+							equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+						}
+						liks[focal, ] <- (root.state/sum(root.state)) * equil.root
+						
+					}
+					else{
+						liks[focal, ] <- root.p
+					}
 				}
 			}
 			else{
@@ -276,27 +282,30 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		#Outputs likeliest node states
 		obj$lik.anc.states <- lik.states[-TIPS]
 	}
-	
 	if(method=="marginal"){
 		#A temporary likelihood matrix so that the original does not get written over:
 		liks.down<-liks
 		#root equilibrium frequencies
 		if(is.null(root.p)){
-			equil.root <- NULL
-			for(i in 1:ncol(Q)){
-				posrows <- which(Q[,i] >= 0)
-				rowsum <- sum(Q[posrows,i])
-				poscols <- which(Q[i,] >= 0)
-				colsum <- sum(Q[i,poscols])
-				equil.root <- c(equil.root,rowsum/(rowsum+colsum))
-			}
+			equil.root<-rep(1/dim(Q)[2], dim(Q)[2])
 		}
 		else{
-			equil.root<-root.p
+			if(is.character(root.p)){
+				equil.root <- NULL
+				for(i in 1:ncol(Q)){
+					posrows <- which(Q[,i] >= 0)
+					rowsum <- sum(Q[posrows,i])
+					poscols <- which(Q[i,] >= 0)
+					colsum <- sum(Q[i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))	
+				}
+			}
+			else{
+				equil.root=root.p
+			}
 		}
 		#A transpose of Q for assessing probability of j to i, rather than i to j:
 		tranQ<-t(Q)
-		
 		comp<-matrix(0,nb.tip + nb.node,ncol(liks))
 		#The first down-pass: The same algorithm as in the main function to calculate the conditional likelihood at each node:
 		for (i  in seq(from = 1, length.out = nb.node)) {
@@ -314,7 +323,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		}
 		root <- nb.tip + 1L
 		#Enter the root defined root probabilities if they are supplied by the user:
-		if(!is.null(root.p)){
+		if(is.numeric(root.p)){
 			root <- nb.tip + 1L	
 			liks.down[root, ]<-root.p
 		}
@@ -359,7 +368,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			#the ancestral node at row i is called focal
 			focal <- anc[i]
 			focalRows<-which(phy$edge[,2]==focal)
-			#Now you are asessing the change along the branch subtending the focal by multiplying the probability of 
+			#Now you are assessing the change along the branch subtending the focal by multiplying the probability of 
 			#everything at and above focal by the probability of the mother and all the sisters given time t:
 			v <- liks.down[focal,]*expm(tranQ * phy$edge.length[focalRows], method=c("Ward77")) %*% liks.up[focal,]
 			comp[focal] <- sum(v)
@@ -377,7 +386,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 	
 	if(method=="scaled"){
 		comp<-matrix(0,nb.tip + nb.node,ncol(liks))
-		#The same algorithm as in the main function. See comments in either corHMM.R or corDISC.R for details:
+		#The same algorithm as in the main function. See comments in either corHMM.R, corDISC.R, or rayDISC.R for details:
 		for (i  in seq(from = 1, length.out = nb.node)) {
 			#the ancestral node at row i is called focal
 			focal <- anc[i]
@@ -391,7 +400,6 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			comp[focal] <- sum(v)
 			liks[focal, ] <- v/comp[focal]
 		}
-
 		if(!is.null(root.p)){
 			root <- nb.tip + 1L	
 			liks[root, ]<-root.p

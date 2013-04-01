@@ -374,7 +374,7 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		}
 		else{
 			#root.p==madfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
-			if(root.p == "madfitz"){				
+			if(is.character(root.p)){				
 				equil.root <- NULL
 				for(i in 1:ncol(Q)){
 					posrows <- which(Q[,i] >= 0)

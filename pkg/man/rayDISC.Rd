@@ -16,15 +16,15 @@ lb=0, ub=100)
 \item{model}{specifies the underlying model.} 
 \item{node.states}{method used to calculate ancestral states at internal nodes.}
 \item{p}{a vector of transition rates. Allows the user to calculate the likelihood given a specified set of parameter values to specified as fixed and calculate the likelihood.}
-\item{root.p}{a vector used to fix the probabilities at the root.}
+\item{root.p}{a vector used to fix the probabilities at the root, but \dQuote{maddfitz} can also be supplied to use the method of Maddison et al (2007) and FitzJohn et al (2009) (see details).}
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
 }
 \details{
-The function takes a tree and a trait file and estimates transition rates among binary or mulitstate characters. The first column of the trait file must contain the species labels to match to the tree, with the second, third, fourth, and so on, corresponding to the traits of interest. Use the \code{charnum} variable to select the trait for analysis. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case. 
+The function takes a tree and a trait file and estimates transition rates and ancestral states for binary or mulitstate characters. The first column of the trait file must contain the species labels to match to the tree, with the second, third, fourth, and so on, corresponding to the traits of interest. Use the \code{charnum} variable to select the trait for analysis. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case. 
 
-The user can fix the root state probabilities by supplying a vector to the \code{root.p}. If user supplies the flag \code{root.p="madfitz"} calls the same procedure described by Maddison et al (2007) and FitzJohn et al (2009,), which uses the transition rates to assign prior probabilities at the root. This procedure assumes that the evolution of a particular character does not begin with the clade of interest, and if enough time has passed prior to the root, the root state is a random draw from the equilibrium distribution described by the transition model. Note that the default \code{root.p=NULL} assumes equal weighting among all possible states. GIVE AN EXAMPLE OF HOW ROOT.P IS USED WHEN A VECTOR IS SUPPLIED. ALSO ADD IN BIT ABOUT HOW POLYMORPHISMS AND OR MISSING DATA CAN BE INCLUDED HERE.
+The user can fix the root state probabilities by supplying a vector to the \code{root.p}. If user supplies the flag \code{root.p}=\dQuote{maddfitz} calls the same procedure described by Maddison et al (2007) and FitzJohn et al (2009), which uses the transition rates to assign prior probabilities at the root. This procedure assumes that the evolution of a particular character does not begin with the clade of interest, and if enough time has passed prior to the root, the root state is a random draw from the equilibrium distribution described by the transition model. Note that the default \code{root.p=NULL} assumes equal weighting among all possible states. GIVE AN EXAMPLE OF HOW ROOT.P IS USED WHEN A VECTOR IS SUPPLIED. ALSO ADD IN BIT ABOUT HOW POLYMORPHISMS AND OR MISSING DATA CAN BE INCLUDED HERE.
 }
 \value{
 \code{rayDISC} returns an object of class \code{rayDISC}. This is a list with elements:
@@ -83,7 +83,7 @@ Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates.
 
 FitzJohn, R.G., W.P. Maddison, and S.P. Otto. 2009. Estimating trait-dependent speciation and extinction rates from incompletely resolved phylogenies. Systematic Biology 58:595-611.
 
-Maddison, W.P., P.E. Midford, and S.P. Otto. 2007. Estimating a binary character’s effect on speciation and extinction. Systematic Biology 56:701-710.
+Maddison, W.P., P.E. Midford, and S.P. Otto. 2007. Estimating a binary characters effect on speciation and extinction. Systematic Biology 56:701-710.
 }
 \author{Jeffrey C. Oliver and Jeremy M. Beaulieu}
 \keyword{models}
