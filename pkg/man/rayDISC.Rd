@@ -79,7 +79,11 @@ The user can fix the root state probabilities by supplying a vector to the \code
 \references{
 Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.
 
-Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates. 
+Felsenstein J. 2004. Inferring phylogenies. Sunderland MA: Sinauer Associates.
+
+FitzJohn, R.G., W.P. Maddison, and S.P. Otto. 2009. Estimating trait-dependent speciation and extinction rates from incompletely resolved phylogenies. Systematic Biology 58:595-611.
+
+Maddison, W.P., P.E. Midford, and S.P. Otto. 2007. Estimating a binary character’s effect on speciation and extinction. Systematic Biology 56:701-710.
 }
 \author{Jeffrey C. Oliver and Jeremy M. Beaulieu}
 \keyword{models}
