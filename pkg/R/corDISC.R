@@ -288,7 +288,8 @@ dev.cordisc<-function(p,phy,liks,Q,rate,root.p){
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
 		if (is.null(root.p)){
-			loglik <- -sum(log(comp[-TIPS]))
+			flat.root = rep(1 / dim(Q)[2], dim(Q)[2])
+			loglik<- -(sum(log(comp[-TIPS])) + log(sum(flat.root * liks[root,])))
 		}
 		else{
 			#root.p==maddfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:

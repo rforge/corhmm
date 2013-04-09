@@ -342,7 +342,8 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	phy <- reorder(phy, "pruningwise")
 	#Obtain an object of all the unique ancestors
 	anc <- unique(phy$edge[,1])
-	
+	k.rates <- dim(Q)[2] / 2
+
 	if (any(is.nan(p)) || any(is.infinite(p))) return(1000000)
 	
 	Q[] <- c(p, 0)[rate]
@@ -364,13 +365,27 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		#Divide each likelihood by the sum to obtain probabilities:
 		liks[focal, ] <- v/comp[focal]
 	}
+	#Temporary solution for ensuring an ordered Q with respect to the rate classes:
+	if(k.rates == 2){
+		if(p[3] > p[8]){return(1000000)}
+	}
+	if(k.rates == 3){
+		if(p[3] > p[9] | p[9] > p[14]){return(1000000)}
+	}
+	if(k.rates == 4){
+		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[20]){return(1000000)}
+	}
+	if(k.rates == 5){
+		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26]){return(1000000)}
+	}
 	#Specifies the root:
 	root <- nb.tip + 1L
 	#If any of the logs have NAs restart search:
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
 		if (is.null(root.p)){
-			loglik<--sum(log(comp[-TIPS]))
+			flat.root = rep(1 / (k.rates*2), k.rates*2)
+			loglik<- -(sum(log(comp[-TIPS])) + log(sum(flat.root * liks[root,])))
 		}
 		else{
 			#root.p==maddfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
@@ -383,7 +398,7 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 					colsum <- sum(Q[i,poscols])
 					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
 				}
-				loglik<- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
+				loglik <- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
 				if(is.infinite(loglik)){return(1000000)}
 			}
 			#root.p!==NULL will fix root probabilities based on user supplied vector:

@@ -227,7 +227,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 						#This is the basic marginal calculation:
 						root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 					}
-					liks[focal, ] <- root.state/sum(root.state)
+					liks[focal, ] <- (root.state/sum(root.state))
 				}
 				else{
 					if(is.character(root.p)){
@@ -240,7 +240,6 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 							equil.root <- c(equil.root,rowsum/(rowsum+colsum))
 						}
 						liks[focal, ] <- (root.state/sum(root.state)) * equil.root
-						
 					}
 					else{
 						liks[focal, ] <- root.p
