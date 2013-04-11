@@ -45,11 +45,17 @@ We also note that scoring information that is missing for a species can be incor
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned}
 }
 \examples{
-# Not run
-# Load tree and data
+## Not run
+## Load tree and data
 # data(primates)
-# Obtain the fit for two binary characters
-# pp<-corDISC(tree,trait,ntraits=2,model="ARD",node.states="marginal")
+
+## state combination three is not an observed state, so for fun, let's remove
+## these transitions:
+# new.mat <- rate.mat.maker(hrm=FALSE, ntraits=2, model="ARD")
+# new.mat <- rate.par.drop(new.mat, c(2,8,5,6))
+
+## Obtain the fit for two binary characters
+# pp<-corDISC(tree,trait,ntraits=2,rate.mat=new.mat,model="ARD",node.states="marginal",diagn=FALSE)
 # pp
 }
 \references{

@@ -227,7 +227,8 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 						#This is the basic marginal calculation:
 						root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 					}
-					liks[focal, ] <- (root.state/sum(root.state))
+					flat.root = rep(1 / dim(Q)[2], dim(Q)[2])
+					liks[focal, ] <- root.state * flat.root
 				}
 				else{
 					if(is.character(root.p)){
@@ -239,12 +240,13 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 							colsum <- sum(Q[i,poscols])
 							equil.root <- c(equil.root,rowsum/(rowsum+colsum))
 						}
-						liks[focal, ] <- (root.state/sum(root.state)) * equil.root
+						liks[focal, ] <- root.state * equil.root
 					}
 					else{
 						liks[focal, ] <- root.p
 					}
 				}
+				liks[focal, ] <- liks[focal,] / sum(liks[focal,])
 			}
 			else{
 				#Calculates P_ij(t_z):
@@ -324,7 +326,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		#Enter the root defined root probabilities if they are supplied by the user:
 		if(is.numeric(root.p)){
 			root <- nb.tip + 1L	
-			liks.down[root, ]<-root.p
+			liks.down[root, ] <- root.p
 		}
 		#The up-pass 
 		liks.up<-liks

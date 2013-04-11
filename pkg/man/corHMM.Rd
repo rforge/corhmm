@@ -50,10 +50,10 @@ The state and rates reconstructed at internal nodes are in the order of the colu
 }
 \examples{
 ## Not run
-## data(primates)
+# data(primates)
 ## Obtain the fit of second rate class underlying a binary character:
-## pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
-## pp
+# pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
+# pp
 }
 \references{
 Beaulieu J.M., B.C. O'Meara, and M.J. Donoghue 2013. Identifying hidden rate changes in the evolution of a binary morphological character: the evolution of plant habit in campanulid angiosperms. Systematic Biology In press.
