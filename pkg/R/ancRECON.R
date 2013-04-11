@@ -221,12 +221,12 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			tz<-phy$edge.length[which(phy$edge[,2] == focal)]	
 			if(length(tz)==0){
 				#The focal node is the root, calculate P_k:
+				root.state=1
+				for (desIndex in sequence(length(desRows))){
+					#This is the basic marginal calculation:
+					root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
+				}
 				if(is.null(root.p)){
-					root.state=1
-					for (desIndex in sequence(length(desRows))){
-						#This is the basic marginal calculation:
-						root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
-					}
 					flat.root = rep(1 / dim(Q)[2], dim(Q)[2])
 					liks[focal, ] <- root.state * flat.root
 				}
