@@ -1,9 +1,9 @@
-\name{corDISC.paint}
-\alias{corDISC.paint}
+\name{corPAINT}
+\alias{corPAINT}
 \title{Correlated evolution binary traits}
 \description{Fits multiple rate models of correlated evolution between one, two, or three binary traits to paintings on branches}
 \usage{
-corDISC.paint(phy,data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), 
+corPAINT(phy,data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), 
 node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, 
 lb=0, ub=100)
 }       
@@ -21,10 +21,10 @@ lb=0, ub=100)
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
 }
 \details{
-The function fits a model that applies different transition models between one, two or three binary characters based on the user-defined painting of branches on the tree of discrete "selective regimes". The trait file must be contructed in the following way: the first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The last column in the trait file defines the current "selective regime" for each tip. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. Note that this function works, but is currently development. So use at your own risk. 
+The function fits a model that applies different transition models between one, two or three binary characters based on the user-defined painting of branches on the tree of discrete "selective regimes". The trait file must be contructed in the following way: the first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The last column in the trait file defines the current "selective regime" for each tip. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. NOTE THAT THIS FUNCTION IS CURRENTLY BEING DEVELOPED. USE AT YOUR OWN RISK. 
 }
 \value{
-\code{corDISC.paint} returns an object of class \code{corDISC.paint}. This is a list with elements:
+\code{corPAINT} returns an object of class \code{corPAINT}. This is a list with elements:
 \item{$loglik}{the maximum negative log-likelihood.}
 \item{$AIC}{Akaike information criterion.}
 \item{$AICc}{Akaike information criterion corrected for sample-size.}
@@ -48,7 +48,7 @@ The function fits a model that applies different transition models between one, 
 ## Obtain the fit for two binary characters
 # pp.null<-corDISC(tree,trait,ntraits=2,model="ER",node.states="marginal")
 # pp.null
-# pp.paint<-corDISC.paint(tree,trait,ntraits=2,model="ER",node.states="marginal")
+# pp.paint<-corPAINT(tree,trait,ntraits=2,model="ER",node.states="marginal")
 # pp.paint
 }
 \author{Jeremy M. Beaulieu}
