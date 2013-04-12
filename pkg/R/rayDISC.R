@@ -88,6 +88,7 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 	model.set.final<-rate.cat.set.oneT(phy=phy,data=workingData,model=model,charnum=charnum)
 	if(!is.null(rate.mat)){
 		rate <- rate.mat
+		model.set.final$np <- max(rate, na.rm=TRUE)
 		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
 		model.set.final$rate <- rate
 		model.set.final$index.matrix <- rate.mat

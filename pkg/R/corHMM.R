@@ -85,6 +85,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 	model.set.final<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=rate.cat)
 	if(!is.null(rate.mat)){
 		rate <- rate.mat
+		model.set.final$np <- max(rate, na.rm=TRUE)
 		rate[is.na(rate)]=max(rate, na.rm=TRUE)+1
 		model.set.final$rate <- rate
 		model.set.final$index.matrix <- rate.mat
