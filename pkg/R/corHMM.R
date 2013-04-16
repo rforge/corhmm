@@ -160,7 +160,46 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						tmp[,1] = out$objective
 						tmp[,2:(model.set.final$np+1)] = starts
 						for(i in 2:nstarts){
+							#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
 							starts<-rexp(model.set.final$np, 1/mean)
+							if(rate.cat == 2){
+								if(starts[3] > starts[8]){
+									pp.tmp <- c(starts[3],starts[8])
+									starts[3] <- min(pp.tmp)
+									starts[8] <- max(pp.tmp)
+								}
+							}
+							if(rate.cat == 3){
+								if(starts[3] > starts[9] | starts[9] > starts[14]){
+									if(starts[3] > starts[8]){
+										pp.tmp <- c(starts[3],starts[9],starts[14])
+										starts[3] <- min(pp.tmp)
+										starts[9] <- median(pp.tmp)
+										starts[14] <- max(pp.tmp)
+									}									
+								}
+							}
+							if(rate.cat == 4){
+								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
+									if(starts[3] > starts[8]){
+										p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+										starts[3] <- pp.tmp[order(pp.tmp)][1]
+										starts[9] <- pp.tmp[order(pp.tmp)][2]
+										starts[15] <- pp.tmp[order(pp.tmp)][3]
+										starts[20] <- pp.tmp[order(pp.tmp)][4]
+									}									
+								}
+							}
+							if(rate.cat == 5){
+								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
+									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+									starts[3] <- pp.tmp[order(pp.tmp)][1]
+									starts[9] <- pp.tmp[order(pp.tmp)][2]
+									starts[15] <- pp.tmp[order(pp.tmp)][3]
+									starts[21] <- pp.tmp[order(pp.tmp)][4]
+									starts[26] <- pp.tmp[order(pp.tmp)][5]									
+								}
+							}
 							out.alt = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 							tmp[,1] = out.alt$objective
 							tmp[,2:(model.set.final$np+1)] = starts
@@ -189,7 +228,42 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 					mean = par.score/tl
 					random.restart<-function(nstarts){
 						tmp = matrix(,1,ncol=(1+model.set.final$np))
+						#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
 						starts<-rexp(model.set.final$np, 1/mean)
+						if(rate.cat == 2){
+							if(starts[3] > starts[8]){
+								pp.tmp <- c(starts[3],starts[8])
+								starts[3] <- min(pp.tmp)
+								starts[8] <- max(pp.tmp)
+							}
+						}
+						if(rate.cat == 3){
+							if(starts[3] > starts[9] | starts[9] > starts[14]){
+								pp.tmp <- c(starts[3],starts[9],starts[14])
+								starts[3] <- min(pp.tmp)
+								starts[9] <- median(pp.tmp)
+								starts[14] <- max(pp.tmp)
+							}									
+						}
+						if(rate.cat == 4){
+							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
+								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								starts[3] <- pp.tmp[order(pp.tmp)][1]
+								starts[9] <- pp.tmp[order(pp.tmp)][2]
+								starts[15] <- pp.tmp[order(pp.tmp)][3]
+								starts[20] <- pp.tmp[order(pp.tmp)][4]
+							}									
+						}
+						if(rate.cat == 5){
+							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
+								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								starts[3] <- pp.tmp[order(pp.tmp)][1]
+								starts[9] <- pp.tmp[order(pp.tmp)][2]
+								starts[15] <- pp.tmp[order(pp.tmp)][3]
+								starts[21] <- pp.tmp[order(pp.tmp)][4]
+								starts[26] <- pp.tmp[order(pp.tmp)][5]									
+							}
+						}						
 						out = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 						tmp[,1] = out$objective
 						tmp[,2:(model.set.final$np+1)] = out$solution
@@ -219,22 +293,18 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
-	if (node.states == "marginal"){
+	TIPS <- 1:nb.tip
+	if (node.states == "marginal" || node.states == "scaled"){
 		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, method=node.states, ntraits=NULL, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		tip.states <- NULL
+		tip.states <- lik.anc$lik.tip.states
+		row.names(tip.states) <- phy$tip.label
 	}
 	if (node.states == "joint"){
 		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
-	}
-	if (node.states == "scaled"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL, root.p=root.p)
-		pr<-apply(lik.anc$lik.anc.states,1,which.max)
-		phy$node.label <- pr
-		tip.states <- NULL
 	}
 	
 	cat("Finished. Performing diagnostic tests.", "\n")
@@ -245,7 +315,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 		solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
 		hess.eig <- eigen(h,symmetric=TRUE)
-		eigval<-signif(hess.eig$values,2)
+		eigval<-signif(hess.eig$values, 2)
 		eigvect<-round(hess.eig$vectors, 2)		
 	}
 	else{
@@ -259,8 +329,8 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		colnames(solution) <- colnames(solution.se) <- c("(0)","(1)")			
 		#Initiates user-specified reconstruction method:
 		if (is.character(node.states)) {
-			if (node.states == "marginal"){
-				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
+			if (node.states == "marginal" || node.states == "scaled"){
+				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("P(0)","P(1)")
 			}
 		}
 	}
@@ -268,8 +338,8 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		rownames(solution) <- rownames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
-			if (node.states == "marginal"){		
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+			if (node.states == "marginal" || node.states == "scaled"){		
+				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 			}
 		}
 	}
@@ -277,8 +347,8 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		rownames(solution) <- rownames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		if (is.character(node.states)) {
-			if (node.states == "marginal"){		
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+			if (node.states == "marginal" || node.states == "scaled"){		
+				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 			}
 		}
 	}
@@ -286,8 +356,8 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		rownames(solution) <- rownames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		if (is.character(node.states)) {
-			if (node.states == "marginal"){	
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+			if (node.states == "marginal" || node.states == "scaled"){	
+				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 			}
 		}
 	}
@@ -295,12 +365,11 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		rownames(solution) <- rownames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		if (is.character(node.states)) {
-			if (node.states == "marginal"){	
-				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+			if (node.states == "marginal" || node.states == "scaled"){	
+				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 			}
 		}
 	}
-	
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),rate.cat=rate.cat,solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"corhmm"
 	return(obj)

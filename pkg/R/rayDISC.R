@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu & Jeffrey C. Oliver
 
-rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0,ub=100){
+rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0,ub=100, diagn=FALSE){
 
 	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
 	if(is.null(node.states)){
@@ -143,11 +143,13 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 	#Starts the summarization process:
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
+	TIPS <- 1:nb.tip
 	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, charnum=charnum, root.p=root.p)
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		tip.states <- NULL
+		tip.states <- lik.anc$lik.tip.states
+		row.names(tip.states) <- phy$tip.label
 	}
 	if(node.states == "joint"){
 		phy$node.label <- lik.anc$lik.anc.states
@@ -156,27 +158,34 @@ rayDISC<-function(phy,data, ntraits=1, charnum=1, rate.mat=NULL, model=c("ER","S
 
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
-	#Approximates the Hessian using the numDeriv function
-	h <- hessian(func=dev.raydisc, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
-	solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-	solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
-	
+	if(diagn==TRUE){
+		#Approximates the Hessian using the numDeriv function
+		h <- hessian(func=dev.raydisc, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		hess.eig <- eigen(h,symmetric=TRUE)
+		eigval<-signif(hess.eig$values,2)
+		eigvect<-round(hess.eig$vectors, 2)
+	}
+	else{
+		solution <- matrix(est.pars[model.set.final$index.matrix], dim(model.set.final$index.matrix))
+		solution.se <- matrix(0,dim(solution)[1],dim(solution)[1])
+		eigval<-NULL
+		eigvect<-NULL	
+	}
+
 	if((any(solution == lb,na.rm = TRUE) || any(solution == ub,na.rm = TRUE)) && (lb != 0 || ub != 100)){
 		bound.hit <- TRUE
 	}
 
 	rownames(solution) <- rownames(solution.se) <- state.names
 	colnames(solution) <- colnames(solution.se) <- state.names
+
 	if(is.character(node.states)){
-		if (node.states == "marginal"){
-			colnames(lik.anc$lik.anc.states) <- state.names
+		if (node.states == "marginal" || node.states == "scaled"){
+			colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- state.names
 		}
 	}
-
-	hess.eig <- eigen(h,symmetric=TRUE)
-	eigval<-signif(hess.eig$values,2)
-	eigvect<-round(hess.eig$vectors, 2)
-
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=1, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect,bound.hit=bound.hit) 
 	if(!is.null(matching$message.data)){ # Some taxa were included in data matrix but not not used because they were not in the tree
 		obj$message.data <- matching$message.data
@@ -222,8 +231,6 @@ print.raydisc<-function(x,...){
 	if(!is.null(x$message.data) || !is.null(x$message.tree)){
 		cat("\nThere were differences between the tree and matrix; see message.data and/or message.tree attribute of this rayDISC object for details.\n",sep="")
 	}
-
-
 }
 
 dev.raydisc<-function(p,phy,liks,Q,rate,root.p){

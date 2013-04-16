@@ -227,8 +227,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 					root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 				}
 				if(is.null(root.p)){
-					flat.root = rep(1 / dim(Q)[2], dim(Q)[2])
-					liks[focal, ] <- root.state * flat.root
+					liks[focal, ] <- root.state
 				}
 				else{
 					if(is.character(root.p)){
@@ -343,7 +342,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				desNodes<-phy$edge[motherRow,2]
 				sisterNodes<-desNodes[(which(!desNodes==focal))]
 				sisterRows<-which(phy$edge[,2]%in%sisterNodes==TRUE)
-				#If the mother is not the root then you are calculating the probability of the being in either state.
+				#If the mother is not the root then you are calculating the probability of being in either state.
 				#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
 				if(motherNode!=root){
 					v <- expm(tranQ * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
@@ -361,11 +360,40 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				comp[focal] <- sum(v)
 				liks.up[focal,] <- v/comp[focal]
 			}
+			#Now get the states for the tips (will do, not available for general use):
+			for(i in 1:length(TIPS)){
+				focal <- TIPS[i]
+				#Gets mother and sister information of focal:
+				focalRow<-which(phy$edge[,2]==focal)
+				motherRow<-which(phy$edge[,1]==phy$edge[focalRow,1])
+				motherNode<-phy$edge[focalRow,1]
+				desNodes<-phy$edge[motherRow,2]
+				sisterNodes<-desNodes[(which(!desNodes==focal))]
+				sisterRows<-which(phy$edge[,2]%in%sisterNodes==TRUE)
+				#If the mother is not the root then you are calculating the probability of the being in either state.
+				#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
+				if(motherNode!=root){
+					v <- expm(tranQ * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
+				}
+				#If the mother is the root then just use the marginal. This can also be the prior. 
+				#But for now we are just going to use the marginal at the root -- it is unclear what Mesquite does.
+				else{
+					v <- equil.root
+				}
+				#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
+				#This is essentially calculating the product of the mothers probability and the sisters probability:
+				for (sisterIndex in sequence(length(sisterRows))){
+					v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
+				}
+				comp[focal] <- sum(v)
+				liks.up[focal,] <- v/comp[focal]
+			}
 		}
 		#The final pass
 		liks.final<-liks
 		comp <- numeric(nb.tip + nb.node)
-		for (i  in seq(from = 1, length.out = nb.node-1)) { # In this final pass, root is never encountered.  But its OK, because root likelihoods are set after loop.
+		#In this final pass, root is never encountered. But its OK, because root likelihoods are set after the loop:
+		for (i in seq(from = 1, length.out = nb.node-1)) { 
 			#the ancestral node at row i is called focal
 			focal <- anc[i]
 			focalRows<-which(phy$edge[,2]==focal)
@@ -375,14 +403,27 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			comp[focal] <- sum(v)
 			liks.final[focal, ] <- v/comp[focal]
 		}
+		#Now get the states for the tips (will do, not available for general use):
+		for (i in seq(from = 1, length.out = length(TIPS))) { 
+			#the ancestral node at row i is called focal
+			focal <- TIPS[i]
+			focalRows<-which(phy$edge[,2]==focal)
+			#Now you are assessing the change along the branch subtending the focal by multiplying the probability of 
+			#everything at and above focal by the probability of the mother and all the sisters given time t:
+			v <- liks.down[focal,]*expm(tranQ * phy$edge.length[focalRows], method=c("Ward77")) %*% liks.up[focal,]
+			comp[focal] <- sum(v)
+			liks.final[focal, ] <- v/comp[focal]
+		}
 		#Just add in the marginal at the root calculated on the original downpass or if supplied by the user:
 		liks.final[root,] <- liks.down[root,] * equil.root
-		
 		root.final <- liks.down[root,] * equil.root
 		comproot <- sum(root.final)
 		liks.final[root,] <- root.final/comproot
-		#Reports just the probabilities at internal nodes:
-		obj$lik.anc.states <- liks.final[-TIPS, ]
+		#Reports the probabilities for all internal nodes as well as tips:
+		#Outputs likeliest tip states
+		obj$lik.tip.states <- liks.final[TIPS,]
+		#Outputs likeliest node states
+		obj$lik.anc.states <- liks.final[-TIPS,]
 	}	
 	
 	if(method=="scaled"){
@@ -403,12 +444,27 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		}
 		if(!is.null(root.p)){
 			root <- nb.tip + 1L	
-			liks[root, ]<-root.p
+			if(is.character(root.p)){
+				equil.root <- NULL
+				for(i in 1:ncol(Q)){
+					posrows <- which(Q[,i] >= 0)
+					rowsum <- sum(Q[posrows,i])
+					poscols <- which(Q[i,] >= 0)
+					colsum <- sum(Q[i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+				}
+				liks[root, ] <- liks[root,] * equil.root
+				liks[root, ] <- liks[root,] / sum(liks[root,])
+			}
+			else{
+				liks[root, ] <- root.p
+			}
 		}
-		obj$lik.anc.states <- liks[-TIPS, ]
+		#Reports the probabilities for all internal nodes as well as tips:
+		obj$lik.tip.states <- liks[TIPS,]
+		#Outputs likeliest node states
+		obj$lik.anc.states <- liks[-TIPS,]
 	}	
 	obj
 }
-
-
 

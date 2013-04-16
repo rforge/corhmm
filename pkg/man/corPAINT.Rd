@@ -5,7 +5,7 @@
 \usage{
 corPAINT(phy,data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), 
 node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, 
-lb=0, ub=100)
+lb=0, ub=100,diagn=TRUE)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -19,6 +19,7 @@ lb=0, ub=100)
 \item{ip}{initial values used for the likelihood search. Can be a single value or a vector of unique values for each parameter. The default is \code{ip=1}.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
+\item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
 }
 \details{
 The function fits a model that applies different transition models between one, two or three binary characters based on the user-defined painting of branches on the tree of discrete "selective regimes". The trait file must be contructed in the following way: the first column of the trait file must contain the species labels to match to the tree, with the second, and so on, corresponding to the binary traits of interest. The last column in the trait file defines the current "selective regime" for each tip. The user can fix the root state probabilities by supplying a vector to the \code{root.p}, otherwise, the program assumes the marginal probability for the root. NOTE THAT THIS ALTHOUGH THIS FUNCTION SHOULD WORK, IT IS CURRENTLY BEING DEVELOPED. SO USE AT YOUR OWN RISK. 

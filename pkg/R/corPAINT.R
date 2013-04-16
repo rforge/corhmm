@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100){
+corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"), node.states=c("joint", "marginal", "scaled"), p=NULL, root.p=NULL, ip=NULL, lb=0, ub=100, diagn=TRUE){
 	
 	if(is.null(phy$node.label)==TRUE){
 		stop("There are no node label designations")
@@ -133,7 +133,8 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		tip.states <- NULL
+		tip.states <- lik.anc$lik.tip.states
+		row.names(tip.states) <- phy$tip.label
 	}
 	if(ntraits==1){
 		if (is.character(node.states)) {
@@ -164,8 +165,18 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 	cat("Finished. Performing diagnostic tests.", "\n")
 	
 	#Approximates the Hessian using the numDeriv function
-	h <- hessian(func=dev.corpaint, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,regimes=regimes,root.p=root.p)
-	
+	if(diagn==TRUE){
+		h <- hessian(func=dev.corpaint, x=est.pars, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,regimes=regimes,root.p=root.p)
+		hess.eig <- eigen(h,symmetric=TRUE)
+		eigval<-signif(hess.eig$values,2)
+		eigvect<-round(hess.eig$vectors, 2)
+		
+	}
+	else{
+		h=rep(0,length(est.pars))
+		eigval=NULL
+		eigvect=NULL
+	}
 	solution<-solution.se<-model.set.final$index.matrix
 	
 	for(i in 1:nregimes){
@@ -185,9 +196,6 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 		}
 	}
 
-	hess.eig <- eigen(h,symmetric=TRUE)
-	eigval<-signif(hess.eig$values,2)
-	eigvect<-round(hess.eig$vectors, 2)
 	obj = list(loglik = loglik, AIC = -2*loglik+2*model.set.final$np,AICc = -2*loglik+(2*model.set.final$np*(nb.tip/(nb.tip-model.set.final$np-1))),ntraits=ntraits, solution=solution, solution.se=solution.se, index.mat=model.set.final$index.matrix, opts=opts, data=data.sort, phy=phy, states=lik.anc$lik.anc.states, tip.states=tip.states, iterations=out$iterations, eigval=eigval, eigvect=eigvect) 
 	class(obj)<-"corpaint"
 	return(obj)
