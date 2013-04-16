@@ -43,7 +43,7 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 	
 	ntraits=ntraits
 	model=model
-	root.p=root.p	
+	root.p=root.p
 	ip=ip
 
 	if(ntraits==1){
@@ -133,8 +133,7 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
-		tip.states <- lik.anc$lik.tip.states
-		row.names(tip.states) <- phy$tip.label
+		tip.states <- NULL
 	}
 	if(ntraits==1){
 		if (is.character(node.states)) {
@@ -170,15 +169,13 @@ corPAINT<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD"
 		hess.eig <- eigen(h,symmetric=TRUE)
 		eigval<-signif(hess.eig$values,2)
 		eigvect<-round(hess.eig$vectors, 2)
-		
 	}
 	else{
-		h=rep(0,length(est.pars))
+		h=matrix(0,dim(model.set.final$index.matrix[[1]])[1],dim(model.set.final$index.matrix[[1]])[1])
 		eigval=NULL
 		eigvect=NULL
 	}
 	solution<-solution.se<-model.set.final$index.matrix
-	
 	for(i in 1:nregimes){
 		solution[[i]] <- matrix(est.pars[model.set.final$index.matrix[[i]]], dim(model.set.final$index.matrix[[i]]))
 		solution.se[[i]] <- matrix(sqrt(diag(pseudoinverse(h)))[model.set.final$index.matrix[[i]]], dim(model.set.final$index.matrix[[i]]))
@@ -232,6 +229,7 @@ print.corpaint<-function(x,...){
 dev.corpaint<-function(p,phy,liks,Q,rate,regimes,root.p){
 	
 	nregimes<-length(levels(factor(regimes)))
+	root.reg<-as.numeric(phy$node.label[1])
 	nb.tip <- length(phy$tip.label)
 	nb.node <- phy$Nnode
 	TIPS <- 1:nb.tip
@@ -246,7 +244,6 @@ dev.corpaint<-function(p,phy,liks,Q,rate,regimes,root.p){
 		Q[[i]]<- matrix(c(p, 0)[rate[[i]]],dim(rate[[1]])[1],dim(rate[[1]])[2])
 		diag(Q[[i]]) <- -rowSums(Q[[i]])	
 	}
-
 	for (i  in seq(from = 1, length.out = nb.node)){
 		#the ancestral node at row i is called focal
 		focal <- anc[i]
@@ -266,18 +263,18 @@ dev.corpaint<-function(p,phy,liks,Q,rate,regimes,root.p){
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
 		if (is.null(root.p)){
-			flat.root = rep(1 / dim(Q)[2], dim(Q)[2])
+			flat.root = rep(1 / dim(Q[[1]])[2], dim(Q[[1]])[2])
 			loglik<- -(sum(log(comp[-TIPS])) + log(sum(flat.root * liks[root,])))
 		}
 		else{
 			#root.p==madfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
-			if(root.p == "madfitz"){				
+			if(root.p == "maddfitz"){				
 				equil.root <- NULL
-				for(i in 1:ncol(Q)){
-					posrows <- which(Q[,i] >= 0)
-					rowsum <- sum(Q[posrows,i])
-					poscols <- which(Q[i,] >= 0)
-					colsum <- sum(Q[i,poscols])
+				for(i in 1:ncol(Q[[root.reg]])){
+					posrows <- which(Q[[root.reg]][,i] >= 0)
+					rowsum <- sum(Q[[root.reg]][posrows,i])
+					poscols <- which(Q[[root.reg]][i,] >= 0)
+					colsum <- sum(Q[[root.reg]][i,poscols])
 					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
 				}
 				loglik<- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
@@ -357,7 +354,6 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
 				}
 			}
-				
 			if(model=="ARD"){
 				rate <- lapply(1:nregimes,rate.mat.maker, hrm=FALSE, ntraits=2, model="ARD")
 				np <- length(rate[[1]][is.na(rate[[1]])==TRUE])*nregimes
@@ -433,7 +429,6 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 	
 	obj
 }
-
 
 ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=TRUE, rate.cat, ntraits=NULL, charnum=NULL, rate.mat=NULL, model=c("ER", "SYM", "ARD"), root.p=NULL){
 	
@@ -511,7 +506,6 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
 					}
 				}
-				
 				if(model=="ARD"){
 					rate <- lapply(1:nregimes,rate.mat.maker, hrm=FALSE, ntraits=1, nstates=nl, model="ARD")
 					np <- length(rate[[1]][is.na(rate[[1]])==TRUE])*nregimes
@@ -540,15 +534,28 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 			k=2
 			nl=2
 			if(is.null(rate.mat)){
-				rate <- lapply(1:nregimes,rate.mat.maker, hrm=FALSE, ntraits=2, model="ARD")
-				np <- length(rate[[1]][is.na(rate[[1]])==TRUE])*nregimes
-				
-				for(i in 2:nregimes){
-					rate[[i]]<-rate[[i]]+(length(rate[[1]][is.na(rate[[1]])==TRUE])*(i-1))
+				if(model=="ER"){
+					rate <- lapply(1:nregimes,rate.mat.maker, hrm=FALSE, ntraits=2, model="ER")
+					np <- nregimes
+					for(i in 2:nregimes){
+						rate[[i]]<-rate[[i]]+i-1
+					}
+					index.matrix<-rate
+					for(i in 1:nregimes){
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					}
 				}
-				index.matrix<-rate
-				for(i in 1:nregimes){
-					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+				if(model=="ARD"){
+					rate <- lapply(1:nregimes,rate.mat.maker, hrm=FALSE, ntraits=2, model="ARD")
+					np <- length(rate[[1]][is.na(rate[[1]])==TRUE])*nregimes
+					
+					for(i in 2:nregimes){
+						rate[[i]]<-rate[[i]]+(length(rate[[1]][is.na(rate[[1]])==TRUE])*(i-1))
+					}
+					index.matrix<-rate
+					for(i in 1:nregimes){
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					}
 				}
 			}
 			else{
@@ -654,11 +661,26 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 						#This is the basic marginal calculation:
 						root.state <- root.state * expm(Q[[regimes[focal]]] * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 					}
-					#Divide by the sum of the liks to deal with underflow issues:
-					liks[focal, ] <- root.state/sum(root.state)
-				}
-				else{
-					liks[focal, ] <- root.p
+					if(is.null(root.p)){
+						liks[focal, ] <- root.state
+					}
+					else{
+						if(is.character(root.p)){
+							equil.root <- NULL
+							for(i in 1:ncol(Q[[root.reg]])){
+								posrows <- which(Q[[root.reg]][,i] >= 0)
+								rowsum <- sum(Q[[root.reg]][posrows,i])
+								poscols <- which(Q[[root.reg]][i,] >= 0)
+								colsum <- sum(Q[[root.reg]][i,poscols])
+								equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+							}
+							liks[focal, ] <- root.state * equil.root
+						}
+						else{
+							liks[focal, ] <- root.p
+						}
+					}
+					liks[focal, ] <- liks[focal,] / sum(liks[focal,])
 				}
 			}
 			else{
@@ -700,20 +722,29 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 		#A temporary likelihood matrix so that the original does not get written over:
 		liks.down<-liks
 		#root equilibrium frequencies
-		equil.root <- NULL
-		for(i in 1:ncol(Q[[root.reg]])){
-			posrows <- which(Q[[root.reg]][,i] >= 0)
-			rowsum <- sum(Q[[root.reg]][posrows,i])
-			poscols <- which(Q[[root.reg]][i,] >= 0)
-			colsum <- sum(Q[[root.reg]][i,poscols])
-			equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+		if(is.null(root.p)){
+			equil.root<-rep(1/dim(Q[[1]])[2], dim(Q[[1]])[2])
+		}
+		else{			
+			if(is.character(root.p)){
+				equil.root <- NULL
+				for(i in 1:ncol(Q[[root.reg]])){
+					posrows <- which(Q[[root.reg]][,i] >= 0)
+					rowsum <- sum(Q[[root.reg]][posrows,i])
+					poscols <- which(Q[[root.reg]][i,] >= 0)
+					colsum <- sum(Q[[root.reg]][i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+				}
+			}
+			else{
+				equil.root=root.p
+			}
 		}
 		#A transpose of Q for assessing probability of j to i, rather than i to j:
 		tranQ<-Q		
 		for(i in 1:nregimes){		
 			tranQ[[i]]<-t(Q[[i]])
 		}
-		
 		comp<-matrix(0,nb.tip + nb.node,ncol(liks))
 		#The first down-pass: The same algorithm as in the main function to calculate the conditional likelihood at each node:
 		for (i  in seq(from = 1, length.out = nb.node)) {
@@ -753,7 +784,7 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 				#If the mother is not the root then you are calculating the probability of the being in either state.
 				#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
 				if(motherNode!=root){
-					v <- expm(tranQ[[regimes[motherNode]]] * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]				
+					v <- expm(tranQ[[regimes[motherNode]]] * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]		
 				}
 				#If the mother is the root then just use the marginal. This can also be the prior, which I think is the equilibrium frequency. 
 				#But for now we are just going to use the marginal at the root -- it is unclear what Mesquite does.
@@ -793,7 +824,6 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 		liks.final[root,] <- root.final/comproot
 		#Reports just the probabilities at internal nodes:
 		obj$lik.anc.states <- liks.final[-TIPS, ]
-
 	}	
 	
 	if(method=="scaled"){
@@ -812,10 +842,22 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 			comp[focal] <- sum(v)
 			liks[focal, ] <- v/comp[focal]
 		}
-
 		if(!is.null(root.p)){
 			root <- nb.tip + 1L	
-			liks[root, ]<-root.p
+			if(is.character(root.p)){
+				equil.root <- NULL
+				for(i in 1:ncol(Q[[root.reg]])){
+					posrows <- which(Q[[root.reg]][,i] >= 0)
+					rowsum <- sum(Q[[root.reg]][posrows,i])
+					poscols <- which(Q[[root.reg]][i,] >= 0)
+					colsum <- sum(Q[[root.reg]][i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+				}
+				liks[root, ] <- (liks[root,] * equil.root) / sum((liks[root,] * equil.root))
+			}
+			else{
+				liks[root, ] <- root.p
+			}
 		}
 		obj$lik.anc.states <- liks[-TIPS, ]
 	}	
