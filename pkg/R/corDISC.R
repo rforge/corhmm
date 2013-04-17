@@ -182,7 +182,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- lik.anc$lik.tip.states
-		row.names(tip.states) <- phy$tip.label
+		#row.names(tip.states) <- phy$tip.label
 	}
 	if(node.states == "joint"){
 		phy$node.label <- lik.anc$lik.anc.states
@@ -213,7 +213,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 		colnames(solution) <- colnames(solution.se) <- c("(0,0)","(0,1)","(1,0)","(1,1)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states== "scaled"){
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("P(0,0)","P(0,1)","P(1,0)","P(1,1)")
+				colnames(lik.anc$lik.anc.states) <- c("P(0,0)","P(0,1)","P(1,0)","P(1,1)")
 			}
 		}
 	}
@@ -222,7 +222,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 		colnames(solution) <- colnames(solution.se) <- c("(0,0,0)","(1,0,0)","(0,1,0)","(0,0,1)","(1,1,0)","(1,0,1)","(0,1,1)","(1,1,1)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states== "scaled"){
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("P(0,0,0)","P(1,0,0)","P(0,1,0)","P(0,0,1)","P(1,1,0)","P(1,0,1)","P(0,1,1)","P(1,1,1)")
+				colnames(lik.anc$lik.anc.states) <- c("P(0,0,0)","P(1,0,0)","P(0,1,0)","P(0,0,1)","P(1,1,0)","P(1,0,1)","P(0,1,1)","P(1,1,1)")
 			}
 		}
 	}

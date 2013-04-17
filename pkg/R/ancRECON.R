@@ -421,7 +421,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		liks.final[root,] <- root.final/comproot
 		#Reports the probabilities for all internal nodes as well as tips:
 		#Outputs likeliest tip states
-		obj$lik.tip.states <- liks.final[TIPS,]
+		obj$lik.tip.states <- NULL
 		#Outputs likeliest node states
 		obj$lik.anc.states <- liks.final[-TIPS,]
 	}	

@@ -299,7 +299,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- lik.anc$lik.tip.states
-		row.names(tip.states) <- phy$tip.label
+		#row.names(tip.states) <- phy$tip.label
 	}
 	if (node.states == "joint"){
 		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,root.p=root.p)
@@ -330,7 +330,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		#Initiates user-specified reconstruction method:
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states == "scaled"){
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("P(0)","P(1)")
+				colnames(lik.anc$lik.anc.states) <- c("P(0)","P(1)")
 			}
 		}
 	}
@@ -339,7 +339,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states == "scaled"){		
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)")
 			}
 		}
 	}
@@ -348,7 +348,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states == "scaled"){		
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)")
 			}
 		}
 	}
@@ -357,7 +357,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states == "scaled"){	
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)")
 			}
 		}
 	}
@@ -366,7 +366,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		colnames(solution) <- colnames(solution.se) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 		if (is.character(node.states)) {
 			if (node.states == "marginal" || node.states == "scaled"){	
-				colnames(lik.anc$lik.anc.states) <- colnames(tip.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
+				colnames(lik.anc$lik.anc.states) <- c("(0,R1)","(1,R1)","(0,R2)","(1,R2)","(0,R3)","(1,R3)","(0,R4)","(1,R4)","(0,R5)","(1,R5)")
 			}
 		}
 	}
