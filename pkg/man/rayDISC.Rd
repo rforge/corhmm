@@ -42,7 +42,7 @@ Ambiguities (polymorphic taxa or taxa missing data) are assigned likelihoods fol
 \item{$data}{User-supplied dataset.}
 \item{$phy}{User-supplied tree.}
 \item{$states}{The likeliest states at each internal node.}
-\item{$tip.states}{The likeliest states at each tip.}
+\item{$tip.states}{NULL}
 \item{$iterations}{The number of iterations used by the optimization routine.}
 \item{$eigval}{The eigenvalues from the decomposition of the Hessian of the likelihood function. If any \code{eigval<0} then one or more parameters were not optimized during the likelihood search.}
 \item{$eigvect}{The eigenvectors from the decomposition of the Hessian of the likelihood function is returned.}
