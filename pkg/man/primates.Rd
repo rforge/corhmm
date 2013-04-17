@@ -1,9 +1,5 @@
 \name{primates}
 \docType{data}
-\alias{tree}
-\alias{trait}
-\alias{rayDISC.example.tree}
-\alias{rayDISC.example.data}
 \title{An example dataset}
 \description{
 The primate dataset from BayesTraits which contains a single tree with branch lengths scaled to time, and a trait file that contains two binary characters. 
