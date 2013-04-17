@@ -4,7 +4,6 @@
 \alias{trait}
 \alias{rayDISC.example.tree}
 \alias{rayDISC.example.data}
-\alias{.Random.seed}
 \title{An example dataset}
 \description{
 The primate dataset from BayesTraits which contains a single tree with branch lengths scaled to time, and a trait file that contains two binary characters. 
