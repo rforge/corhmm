@@ -3,7 +3,7 @@
 \title{Ancestral state reconstruction}
 \description{Infers ancestral states based on a set of model parameters}
 \usage{
-ancRECON(phy,data, p, method=c("joint", "marginal", "scaled"), hrm=TRUE, 
+ancRECON(phy,data, p, method=c("joint", "marginal", "scaled"), hrm=FALSE, 
 rate.cat, ntraits=NULL, charnum=NULL, rate.mat=NULL,
 model=c("ER", "SYM", "ARD"), root.p=NULL)
 }       
@@ -34,13 +34,13 @@ For the \code{joint}, a vector of likeliest states at internal nodes and tips. F
 \examples{
 # Not run
 ## Load tree and trait
-#data(primates)
+# data(primates)
 ## Obtain the marginal reconstruction for a set of parameters:
 # param<-c(0.05254515,100.00000000,0.01451868,0.01687257,0.006741277,0.000000000,0.01938886,51.68536462)
-# states<-ancRECON(tree,trait,p=param,method="marginal",hrm=FALSE,ntraits=2,model="ARD")
+# states<-ancRECON(primates$tree,primates$trait,p=param,method="marginal",hrm=FALSE,ntraits=2,model="ARD")
 ## Put likeliest states on the tree:
 # pr<-apply(states$lik.anc.states,1,which.max)
-# tree$node.label <- pr
+# primates$tree$node.label <- pr
 }
 \references{
 FitzJohn, R.G., W.P. Maddison, and S.P. Otto. 2009. Estimating trait-dependent speciation and extinction rates from incompletely resolved phylogenies. Systematic Biology 58:595-611.

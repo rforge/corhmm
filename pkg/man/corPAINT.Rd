@@ -47,9 +47,9 @@ The function fits a model that applies different transition models between one, 
 ## Load tree and data
 # data(primates.paint)
 ## Obtain the fit for two binary characters
-# pp.null<-corDISC(tree,trait,ntraits=2,model="ER",node.states="marginal")
+# pp.null<-corDISC(primates.paint$tree,primates.paint$trait,ntraits=2,model="ER",node.states="marginal")
 # pp.null
-# pp.paint<-corPAINT(tree,trait,ntraits=2,model="ER",node.states="marginal")
+# pp.paint<-corPAINT(primates.paint$tree,primates.paint$trait,ntraits=2,model="ER",node.states="marginal")
 # pp.paint
 }
 \author{Jeremy M. Beaulieu}

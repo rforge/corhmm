@@ -55,7 +55,7 @@ We also note that scoring information that is missing for a species can be incor
 # new.mat <- rate.par.drop(new.mat, c(2,8,5,6))
 
 ## Obtain the fit for two binary characters
-# pp<-corDISC(tree,trait,ntraits=2,rate.mat=new.mat,model="ARD",node.states="marginal",diagn=FALSE)
+# pp<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=new.mat,model="ARD",node.states="marginal",diagn=FALSE)
 # pp
 }
 \references{

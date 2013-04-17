@@ -52,7 +52,7 @@ The state and rates reconstructed at internal nodes are in the order of the colu
 ## Not run
 # data(primates)
 ## Obtain the fit of second rate class underlying a binary character:
-# pp<-corHMM(tree,trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
+# pp<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
 # pp
 }
 \references{
