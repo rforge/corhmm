@@ -162,44 +162,44 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						for(i in 2:nstarts){
 							#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
 							starts<-rexp(model.set.final$np, 1/mean)
-							if(rate.cat == 2){
-								if(starts[3] > starts[8]){
-									pp.tmp <- c(starts[3],starts[8])
-									starts[3] <- min(pp.tmp)
-									starts[8] <- max(pp.tmp)
-								}
-							}
-							if(rate.cat == 3){
-								if(starts[3] > starts[9] | starts[9] > starts[14]){
-									if(starts[3] > starts[8]){
-										pp.tmp <- c(starts[3],starts[9],starts[14])
-										starts[3] <- min(pp.tmp)
-										starts[9] <- median(pp.tmp)
-										starts[14] <- max(pp.tmp)
-									}									
-								}
-							}
-							if(rate.cat == 4){
-								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
-									if(starts[3] > starts[8]){
-										p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-										starts[3] <- pp.tmp[order(pp.tmp)][1]
-										starts[9] <- pp.tmp[order(pp.tmp)][2]
-										starts[15] <- pp.tmp[order(pp.tmp)][3]
-										starts[20] <- pp.tmp[order(pp.tmp)][4]
-									}									
-								}
-							}
-							if(rate.cat == 5){
-								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
-									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-									starts[3] <- pp.tmp[order(pp.tmp)][1]
-									starts[9] <- pp.tmp[order(pp.tmp)][2]
-									starts[15] <- pp.tmp[order(pp.tmp)][3]
-									starts[21] <- pp.tmp[order(pp.tmp)][4]
-									starts[26] <- pp.tmp[order(pp.tmp)][5]									
-								}
-							}
+#							if(rate.cat == 2){
+#								if(starts[3] > starts[8]){
+#									pp.tmp <- c(starts[3],starts[8])
+#									starts[3] <- min(pp.tmp)
+#									starts[8] <- max(pp.tmp)
+#								}
+#							}
+#							if(rate.cat == 3){
+#								if(starts[3] > starts[9] | starts[9] > starts[14]){
+#									if(starts[3] > starts[8]){
+#										pp.tmp <- c(starts[3],starts[9],starts[14])
+#										starts[3] <- min(pp.tmp)
+#										starts[9] <- median(pp.tmp)
+#										starts[14] <- max(pp.tmp)
+#									}									
+#								}
+#							}
+#							if(rate.cat == 4){
+#								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
+#									if(starts[3] > starts[8]){
+#										p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+#										starts[3] <- pp.tmp[order(pp.tmp)][1]
+#										starts[9] <- pp.tmp[order(pp.tmp)][2]
+#										starts[15] <- pp.tmp[order(pp.tmp)][3]
+#										starts[20] <- pp.tmp[order(pp.tmp)][4]
+#									}									
+#								}
+#							}
+#							if(rate.cat == 5){
+#								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
+#									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+#									starts[3] <- pp.tmp[order(pp.tmp)][1]
+#									starts[9] <- pp.tmp[order(pp.tmp)][2]
+#									starts[15] <- pp.tmp[order(pp.tmp)][3]
+#									starts[21] <- pp.tmp[order(pp.tmp)][4]
+#									starts[26] <- pp.tmp[order(pp.tmp)][5]									
+#								}
+#							}
 							out.alt = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 							tmp[,1] = out.alt$objective
 							tmp[,2:(model.set.final$np+1)] = starts
@@ -230,40 +230,40 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						tmp = matrix(,1,ncol=(1+model.set.final$np))
 						#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
 						starts<-rexp(model.set.final$np, 1/mean)
-						if(rate.cat == 2){
-							if(starts[3] > starts[8]){
-								pp.tmp <- c(starts[3],starts[8])
-								starts[3] <- min(pp.tmp)
-								starts[8] <- max(pp.tmp)
-							}
-						}
-						if(rate.cat == 3){
-							if(starts[3] > starts[9] | starts[9] > starts[14]){
-								pp.tmp <- c(starts[3],starts[9],starts[14])
-								starts[3] <- min(pp.tmp)
-								starts[9] <- median(pp.tmp)
-								starts[14] <- max(pp.tmp)
-							}									
-						}
-						if(rate.cat == 4){
-							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
-								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-								starts[3] <- pp.tmp[order(pp.tmp)][1]
-								starts[9] <- pp.tmp[order(pp.tmp)][2]
-								starts[15] <- pp.tmp[order(pp.tmp)][3]
-								starts[20] <- pp.tmp[order(pp.tmp)][4]
-							}									
-						}
-						if(rate.cat == 5){
-							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
-								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-								starts[3] <- pp.tmp[order(pp.tmp)][1]
-								starts[9] <- pp.tmp[order(pp.tmp)][2]
-								starts[15] <- pp.tmp[order(pp.tmp)][3]
-								starts[21] <- pp.tmp[order(pp.tmp)][4]
-								starts[26] <- pp.tmp[order(pp.tmp)][5]									
-							}
-						}						
+#						if(rate.cat == 2){
+#							if(starts[3] > starts[8]){
+#								pp.tmp <- c(starts[3],starts[8])
+#								starts[3] <- min(pp.tmp)
+#								starts[8] <- max(pp.tmp)
+#							}
+#						}
+#						if(rate.cat == 3){
+#							if(starts[3] > starts[9] | starts[9] > starts[14]){
+#								pp.tmp <- c(starts[3],starts[9],starts[14])
+#								starts[3] <- min(pp.tmp)
+#								starts[9] <- median(pp.tmp)
+#								starts[14] <- max(pp.tmp)
+#							}									
+#						}
+#						if(rate.cat == 4){
+#							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
+#								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+#								starts[3] <- pp.tmp[order(pp.tmp)][1]
+#								starts[9] <- pp.tmp[order(pp.tmp)][2]
+#								starts[15] <- pp.tmp[order(pp.tmp)][3]
+#								starts[20] <- pp.tmp[order(pp.tmp)][4]
+#							}									
+#						}
+#						if(rate.cat == 5){
+#							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
+#								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+#								starts[3] <- pp.tmp[order(pp.tmp)][1]
+#								starts[9] <- pp.tmp[order(pp.tmp)][2]
+#								starts[15] <- pp.tmp[order(pp.tmp)][3]
+#								starts[21] <- pp.tmp[order(pp.tmp)][4]
+#								starts[26] <- pp.tmp[order(pp.tmp)][5]									
+#							}
+#						}						
 						out = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 						tmp[,1] = out$objective
 						tmp[,2:(model.set.final$np+1)] = out$solution
@@ -295,7 +295,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 	
 	TIPS <- 1:nb.tip
 	if (node.states == "marginal" || node.states == "scaled"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, method=node.states, ntraits=NULL, root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, rate.mat=rate.mat, method=node.states, ntraits=NULL, root.p=root.p)
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
 		tip.states <- lik.anc$lik.tip.states
@@ -418,7 +418,6 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	
 	Q[] <- c(p, 0)[rate]
 	diag(Q) <- -rowSums(Q)
-	
 	for (i  in seq(from = 1, length.out = nb.node)) {
 		#the ancestral node at row i is called focal
 		focal <- anc[i]
@@ -436,18 +435,18 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		liks[focal, ] <- v/comp[focal]
 	}
 	#Temporary solution for ensuring an ordered Q with respect to the rate classes:
-	if(k.rates == 2){
-		if(p[3] > p[8]){return(1000000)}
-	}
-	if(k.rates == 3){
-		if(p[3] > p[9] | p[9] > p[14]){return(1000000)}
-	}
-	if(k.rates == 4){
-		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[20]){return(1000000)}
-	}
-	if(k.rates == 5){
-		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26]){return(1000000)}
-	}
+#	if(k.rates == 2){
+#		if(p[3] > p[8]){return(1000000)}
+#	}
+#	if(k.rates == 3){
+#		if(p[3] > p[9] | p[9] > p[14]){return(1000000)}
+#	}
+#	if(k.rates == 4){
+#		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[20]){return(1000000)}
+#	}
+#	if(k.rates == 5){
+#		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26]){return(1000000)}
+#	}
 	#Specifies the root:
 	root <- nb.tip + 1L
 	#If any of the logs have NAs restart search:

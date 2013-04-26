@@ -177,7 +177,7 @@ corDISC<-function(phy, data, ntraits=2, rate.mat=NULL, model=c("ER","SYM","ARD")
 	cat("Finished. Inferring ancestral states using", node.states, "reconstruction.","\n")
 	
 	TIPS <- 1:nb.tip
-	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, ntraits=ntraits, method=node.states, model=model, root.p=root.p)
+	lik.anc <- ancRECON(phy, data, est.pars, hrm=FALSE, rate.cat=NULL, rate.mat=rate.mat, ntraits=ntraits, method=node.states, model=model, root.p=root.p)
 	if(node.states == "marginal" || node.states == "scaled"){
 		pr<-apply(lik.anc$lik.anc.states,1,which.max)
 		phy$node.label <- pr
