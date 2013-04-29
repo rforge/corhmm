@@ -32,12 +32,12 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 	#to go about this, but it is the best I can do for now -- it works, so what me worry?
 	if(hrm==TRUE){
 		if(is.null(rate.mat)){
-			rate<-rate.mat.maker(hrm=T,rate.cat=rate.cat)
-			rate[is.na(rate)]<-max(rate,na.rm=T)+1
+			rate<-rate.mat.maker(hrm=TRUE,rate.cat=rate.cat)
+			rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 		}
 		else{
 			rate<-rate.mat
-			rate[is.na(rate)]<-max(rate,na.rm=T)+1
+			rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 		}
 		#Makes a matrix of tip states and empty cells corresponding 
 		#to ancestral nodes during the optimization process.	
@@ -103,11 +103,11 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			
 			if(is.null(rate.mat)){
 				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,nstates=nl,model=model)
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			else{
 				rate<-rate.mat
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			
 			stateTable <- NULL # will hold 0s and 1s for likelihoods of each state at tip
@@ -125,11 +125,11 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			nl=2
 			if(is.null(rate.mat)){
 				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			else{
 				rate<-rate.mat
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			x<-data.sort[,1]
 			y<-data.sort[,2]
@@ -155,11 +155,11 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			nl=2
 			if(is.null(rate.mat)){
 				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			else{
 				rate<-rate.mat
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}			
 			x<-data.sort[,1]
 			y<-data.sort[,2]

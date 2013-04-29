@@ -103,11 +103,11 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		else{
 			cat("Initializing...", "\n")
 			model.set.init<-rate.cat.set(phy=phy,data.sort=data.sort,rate.cat=1)
-			rate<-rate.mat.maker(hrm=T,rate.cat=1)
+			rate<-rate.mat.maker(hrm=TRUE,rate.cat=1)
 			rate<-rate.par.eq(rate,eq.par=c(1,2))
 			model.set.init$index.matrix<-rate
-			rate[is.na(rate)]<-max(rate,na.rm=T)+1
-			mode.set.init$rate<-rate
+			rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
+			model.set.init$rate<-rate
 			opts <- list("algorithm"="NLOPT_LN_SBPLX", "maxeval"="1000000", "ftol_rel"=.Machine$double.eps^0.25)
 			dat<-as.matrix(data.sort)
 			dat<-phyDat(dat,type="USER", levels=c("0","1"))
@@ -160,46 +160,47 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						tmp[,1] = out$objective
 						tmp[,2:(model.set.final$np+1)] = starts
 						for(i in 2:nstarts){
-							#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
+						#Temporary solution for ensuring an ordered Q with respect to the rate classes. If a simpler model is called this feature is automatically turned off:
 							starts<-rexp(model.set.final$np, 1/mean)
-#							if(rate.cat == 2){
-#								if(starts[3] > starts[8]){
-#									pp.tmp <- c(starts[3],starts[8])
-#									starts[3] <- min(pp.tmp)
-#									starts[8] <- max(pp.tmp)
-#								}
-#							}
-#							if(rate.cat == 3){
-#								if(starts[3] > starts[9] | starts[9] > starts[14]){
-#									if(starts[3] > starts[8]){
-#										pp.tmp <- c(starts[3],starts[9],starts[14])
-#										starts[3] <- min(pp.tmp)
-#										starts[9] <- median(pp.tmp)
-#										starts[14] <- max(pp.tmp)
-#									}									
-#								}
-#							}
-#							if(rate.cat == 4){
-#								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
-#									if(starts[3] > starts[8]){
-#										p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-#										starts[3] <- pp.tmp[order(pp.tmp)][1]
-#										starts[9] <- pp.tmp[order(pp.tmp)][2]
-#										starts[15] <- pp.tmp[order(pp.tmp)][3]
-#										starts[20] <- pp.tmp[order(pp.tmp)][4]
-#									}									
-#								}
-#							}
-#							if(rate.cat == 5){
-#								if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
-#									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-#									starts[3] <- pp.tmp[order(pp.tmp)][1]
-#									starts[9] <- pp.tmp[order(pp.tmp)][2]
-#									starts[15] <- pp.tmp[order(pp.tmp)][3]
-#									starts[21] <- pp.tmp[order(pp.tmp)][4]
-#									starts[26] <- pp.tmp[order(pp.tmp)][5]									
-#								}
-#							}
+							par.order<-NA
+							if(rate.cat == 2){
+								try(par.order<-starts[3] > starts[8])
+								if(!is.na(par.order)){
+									pp.tmp <- c(starts[3],starts[8])
+									starts[3] <- min(pp.tmp)
+									starts[8] <- max(pp.tmp)
+								}
+							}
+							if(rate.cat == 3){
+								try(par.order <- starts[3] > starts[9] | starts[9] > starts[14])
+								if(!is.na(par.order)){
+										pp.tmp <- c(starts[3],starts[9],starts[14])
+										starts[3] <- min(pp.tmp)
+										starts[9] <- median(pp.tmp)
+										starts[14] <- max(pp.tmp)
+								}
+							}
+							if(rate.cat == 4){
+								try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20])
+								if(!is.na(par.order)){
+									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+									starts[3] <- pp.tmp[order(pp.tmp)][1]
+									starts[9] <- pp.tmp[order(pp.tmp)][2]
+									starts[15] <- pp.tmp[order(pp.tmp)][3]
+									starts[20] <- pp.tmp[order(pp.tmp)][4]
+								}
+							}
+							if(rate.cat == 5){
+								try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26])
+								if(!is.na(par.order)){
+									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+									starts[3] <- pp.tmp[order(pp.tmp)][1]
+									starts[9] <- pp.tmp[order(pp.tmp)][2]
+									starts[15] <- pp.tmp[order(pp.tmp)][3]
+									starts[21] <- pp.tmp[order(pp.tmp)][4]
+									starts[26] <- pp.tmp[order(pp.tmp)][5]									
+								}
+							}
 							out.alt = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 							tmp[,1] = out.alt$objective
 							tmp[,2:(model.set.final$np+1)] = starts
@@ -228,42 +229,47 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 					mean = par.score/tl
 					random.restart<-function(nstarts){
 						tmp = matrix(,1,ncol=(1+model.set.final$np))
-						#Temporary solution for ensuring that starting values are ordered with respect to optimization conditions:
+						#Temporary solution for ensuring an ordered Q with respect to the rate classes. If a simpler model is called this feature is automatically turned off:
 						starts<-rexp(model.set.final$np, 1/mean)
-#						if(rate.cat == 2){
-#							if(starts[3] > starts[8]){
-#								pp.tmp <- c(starts[3],starts[8])
-#								starts[3] <- min(pp.tmp)
-#								starts[8] <- max(pp.tmp)
-#							}
-#						}
-#						if(rate.cat == 3){
-#							if(starts[3] > starts[9] | starts[9] > starts[14]){
-#								pp.tmp <- c(starts[3],starts[9],starts[14])
-#								starts[3] <- min(pp.tmp)
-#								starts[9] <- median(pp.tmp)
-#								starts[14] <- max(pp.tmp)
-#							}									
-#						}
-#						if(rate.cat == 4){
-#							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20]){
-#								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-#								starts[3] <- pp.tmp[order(pp.tmp)][1]
-#								starts[9] <- pp.tmp[order(pp.tmp)][2]
-#								starts[15] <- pp.tmp[order(pp.tmp)][3]
-#								starts[20] <- pp.tmp[order(pp.tmp)][4]
-#							}									
-#						}
-#						if(rate.cat == 5){
-#							if(starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26]){
-#								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
-#								starts[3] <- pp.tmp[order(pp.tmp)][1]
-#								starts[9] <- pp.tmp[order(pp.tmp)][2]
-#								starts[15] <- pp.tmp[order(pp.tmp)][3]
-#								starts[21] <- pp.tmp[order(pp.tmp)][4]
-#								starts[26] <- pp.tmp[order(pp.tmp)][5]									
-#							}
-#						}						
+						par.order<-NA
+						if(rate.cat == 2){
+							try(par.order<-starts[3] > starts[8])
+							if(!is.na(par.order)){
+								pp.tmp <- c(starts[3],starts[8])
+								starts[3] <- min(pp.tmp)
+								starts[8] <- max(pp.tmp)
+							}
+						}
+						if(rate.cat == 3){
+							try(par.order <- starts[3] > starts[9] | starts[9] > starts[14])
+							if(!is.na(par.order)){
+								pp.tmp <- c(starts[3],starts[9],starts[14])
+								starts[3] <- min(pp.tmp)
+								starts[9] <- median(pp.tmp)
+								starts[14] <- max(pp.tmp)
+							}
+						}
+						if(rate.cat == 4){
+							try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20])
+							if(!is.na(par.order)){
+								p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								starts[3] <- pp.tmp[order(pp.tmp)][1]
+								starts[9] <- pp.tmp[order(pp.tmp)][2]
+								starts[15] <- pp.tmp[order(pp.tmp)][3]
+								starts[20] <- pp.tmp[order(pp.tmp)][4]
+							}
+						}
+						if(rate.cat == 5){
+							try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26])
+							if(!is.na(par.order)){
+								p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								starts[3] <- pp.tmp[order(pp.tmp)][1]
+								starts[9] <- pp.tmp[order(pp.tmp)][2]
+								starts[15] <- pp.tmp[order(pp.tmp)][3]
+								starts[21] <- pp.tmp[order(pp.tmp)][4]
+								starts[26] <- pp.tmp[order(pp.tmp)][5]									
+							}
+						}						
 						out = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
 						tmp[,1] = out$objective
 						tmp[,2:(model.set.final$np+1)] = out$solution
@@ -434,19 +440,24 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 		#Divide each likelihood by the sum to obtain probabilities:
 		liks[focal, ] <- v/comp[focal]
 	}
-	#Temporary solution for ensuring an ordered Q with respect to the rate classes:
-#	if(k.rates == 2){
-#		if(p[3] > p[8]){return(1000000)}
-#	}
-#	if(k.rates == 3){
-#		if(p[3] > p[9] | p[9] > p[14]){return(1000000)}
-#	}
-#	if(k.rates == 4){
-#		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[20]){return(1000000)}
-#	}
-#	if(k.rates == 5){
-#		if(p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26]){return(1000000)}
-#	}
+	#Temporary solution for ensuring an ordered Q with respect to the rate classes. If a simpler model is called this feature is automatically turned off:
+	par.order<-NA
+	if(k.rates == 2){
+		try(par.order <- p[3] > p[8])
+		if(!is.na(par.order)){return(1000000)}
+	}
+	if(k.rates == 3){
+		try(par.order <- p[3] > p[9] | p[9] > p[14])
+		if(!is.na(par.order)){return(1000000)}
+	}
+	if(k.rates == 4){
+		try(par.order <- p[3] > p[9] | p[9] > p[15] | p[15] > p[20])
+		if(!is.na(par.order)){return(1000000)}
+	}
+	if(k.rates == 5){
+		try(par.order <- p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26])
+		if(!is.na(par.order)){return(1000000)}
+	}
 	#Specifies the root:
 	root <- nb.tip + 1L
 	#If any of the logs have NAs restart search:
@@ -490,7 +501,7 @@ rate.cat.set<-function(phy,data.sort,rate.cat){
 
 	rate<-rate.mat.maker(hrm=TRUE,rate.cat=rate.cat)
 	index.matrix<-rate
-	rate[is.na(rate)]<-max(rate,na.rm=T)+1
+	rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 
 	#Makes a matrix of tip states and empty cells corresponding 
 	#to ancestral nodes during the optimization process.	

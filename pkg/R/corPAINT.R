@@ -312,7 +312,7 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 				}
 				index.matrix<-rate
 				for(i in 1:nregimes){
-					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 				}
 			}
 			
@@ -325,7 +325,7 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 				}
 				index.matrix<-rate
 				for(i in 1:nregimes){
-					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 				}
 			}
 		}
@@ -351,7 +351,7 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 				}
 				index.matrix<-rate
 				for(i in 1:nregimes){
-					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 				}
 			}
 			if(model=="ARD"){
@@ -363,7 +363,7 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 				}
 				index.matrix<-rate
 				for(i in 1:nregimes){
-					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+					rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 				}
 			}
 		}	
@@ -390,7 +390,7 @@ rate.mat.set.paint<-function(phy,data.sort,nregimes,ntraits,model){
 	if(ntraits==3){
 		rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
 		index.matrix<-rate
-		rate[is.na(rate)]<-max(rate,na.rm=T)+1
+		rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 		
 		x<-data.sort[,1]
 		y<-data.sort[,2]
@@ -503,7 +503,7 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 					}
 					index.matrix<-rate
 					for(i in 1:nregimes){
-						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 					}
 				}
 				if(model=="ARD"){
@@ -515,7 +515,7 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 					}
 					index.matrix<-rate
 					for(i in 1:nregimes){
-						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 					}
 				}
 			}
@@ -542,7 +542,7 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 					}
 					index.matrix<-rate
 					for(i in 1:nregimes){
-						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 					}
 				}
 				if(model=="ARD"){
@@ -554,13 +554,13 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 					}
 					index.matrix<-rate
 					for(i in 1:nregimes){
-						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=T)+1
+						rate[[i]][is.na(rate[[i]])]<-max(rate[[nregimes]],na.rm=TRUE)+1
 					}
 				}
 			}
 			else{
 				rate<-rate.mat
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			x<-data.sort[,1]
 			y<-data.sort[,2]
@@ -586,11 +586,11 @@ ancRECON.paint <- function(phy, data, p, method=c("joint", "marginal", "scaled")
 			nl=2
 			if(is.null(rate.mat)){
 				rate<-rate.mat.maker(hrm=FALSE,ntraits=ntraits,model=model)
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}
 			else{
 				rate<-rate.mat
-				rate[is.na(rate)]<-max(rate,na.rm=T)+1
+				rate[is.na(rate)]<-max(rate,na.rm=TRUE)+1
 			}			
 			x<-data.sort[,1]
 			y<-data.sort[,2]
