@@ -225,19 +225,19 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 					#This is the basic marginal calculation:
 					root.state <- root.state * expm(Q * phy$edge.length[desRows[desIndex]], method=c("Ward77")) %*% liks[desNodes[desIndex],]
 				}
+				equil.root <- NULL
+				for(i in 1:ncol(Q)){
+					posrows <- which(Q[,i] >= 0)
+					rowsum <- sum(Q[posrows,i])
+					poscols <- which(Q[i,] >= 0)
+					colsum <- sum(Q[i,poscols])
+					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+				}
 				if(is.null(root.p)){
 					liks[focal, ] <- root.state
 				}
 				else{
 					if(is.character(root.p)){
-						equil.root <- NULL
-						for(i in 1:ncol(Q)){
-							posrows <- which(Q[,i] >= 0)
-							rowsum <- sum(Q[posrows,i])
-							poscols <- which(Q[i,] >= 0)
-							colsum <- sum(Q[i,poscols])
-							equil.root <- c(equil.root,rowsum/(rowsum+colsum))
-						}
 						liks[focal, ] <- root.state * equil.root
 					}
 					else{
@@ -285,19 +285,23 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 		#A temporary likelihood matrix so that the original does not get written over:
 		liks.down<-liks
 		#root equilibrium frequencies
+		equil.root <- NULL
+		for(i in 1:ncol(Q)){
+			posrows <- which(Q[,i] >= 0)
+			rowsum <- sum(Q[posrows,i])
+			poscols <- which(Q[i,] >= 0)
+			colsum <- sum(Q[i,poscols])
+			equil.root <- c(equil.root,rowsum/(rowsum+colsum))	
+		}		
 		if(is.null(root.p)){
-			equil.root<-rep(1/dim(Q)[2], dim(Q)[2])
+			k.rates <- 1/length(which(!is.na(equil.root)))
+			equil.root[!is.na(equil.root)] = k.rates
+			equil.root[is.na(equil.root)] = 0
 		}
 		else{
 			if(is.character(root.p)){
-				equil.root <- NULL
-				for(i in 1:ncol(Q)){
-					posrows <- which(Q[,i] >= 0)
-					rowsum <- sum(Q[posrows,i])
-					poscols <- which(Q[i,] >= 0)
-					colsum <- sum(Q[i,poscols])
-					equil.root <- c(equil.root,rowsum/(rowsum+colsum))	
-				}
+				equil.root <- equil.root
+				equil.root[is.na(equil.root)] = 0
 			}
 			else{
 				equil.root=root.p

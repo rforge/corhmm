@@ -24,7 +24,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 			cat("No model selected for \'node.states\'. Will perform marginal ancestral state estimation.\n")
 		}
 	}
-	
+
 	# Checks to make sure phy & data have same taxa. sFixes conflicts (see match.tree.data function).
 	matching <- match.tree.data(phy,data) 
 	data <- matching$data
@@ -174,16 +174,16 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 							if(rate.cat == 3){
 								try(par.order <- starts[3] > starts[9] | starts[9] > starts[14])
 								if(!is.na(par.order)){
-										pp.tmp <- c(starts[3],starts[9],starts[14])
-										starts[3] <- min(pp.tmp)
-										starts[9] <- median(pp.tmp)
-										starts[14] <- max(pp.tmp)
+									pp.tmp <- c(starts[3],starts[9],starts[14])
+									starts[3] <- min(pp.tmp)
+									starts[9] <- median(pp.tmp)
+									starts[14] <- max(pp.tmp)
 								}
 							}
 							if(rate.cat == 4){
 								try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20])
 								if(!is.na(par.order)){
-									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+									pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
 									starts[3] <- pp.tmp[order(pp.tmp)][1]
 									starts[9] <- pp.tmp[order(pp.tmp)][2]
 									starts[15] <- pp.tmp[order(pp.tmp)][3]
@@ -193,12 +193,12 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 							if(rate.cat == 5){
 								try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26])
 								if(!is.na(par.order)){
-									p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+									pp.tmp <- c(starts[3],starts[9],starts[15],starts[21],starts[26])
 									starts[3] <- pp.tmp[order(pp.tmp)][1]
 									starts[9] <- pp.tmp[order(pp.tmp)][2]
 									starts[15] <- pp.tmp[order(pp.tmp)][3]
 									starts[21] <- pp.tmp[order(pp.tmp)][4]
-									starts[26] <- pp.tmp[order(pp.tmp)][5]									
+									starts[26] <- pp.tmp[order(pp.tmp)][5]	
 								}
 							}
 							out.alt = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
@@ -252,7 +252,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						if(rate.cat == 4){
 							try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[20])
 							if(!is.na(par.order)){
-								p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								pp.tmp <- c(starts[3],starts[9],starts[15],starts[20])
 								starts[3] <- pp.tmp[order(pp.tmp)][1]
 								starts[9] <- pp.tmp[order(pp.tmp)][2]
 								starts[15] <- pp.tmp[order(pp.tmp)][3]
@@ -262,12 +262,12 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 						if(rate.cat == 5){
 							try(par.order <- starts[3] > starts[9] | starts[9] > starts[15] | starts[15] > starts[21] | starts[21] > starts[26])
 							if(!is.na(par.order)){
-								p.tmp <- c(starts[3],starts[9],starts[15],starts[20])
+								pp.tmp <- c(starts[3],starts[9],starts[15],starts[21],starts[26])
 								starts[3] <- pp.tmp[order(pp.tmp)][1]
 								starts[9] <- pp.tmp[order(pp.tmp)][2]
 								starts[15] <- pp.tmp[order(pp.tmp)][3]
 								starts[21] <- pp.tmp[order(pp.tmp)][4]
-								starts[26] <- pp.tmp[order(pp.tmp)][5]									
+								starts[26] <- pp.tmp[order(pp.tmp)][5]
 							}
 						}						
 						out = nloptr(x0=rep(starts, length.out = model.set.final$np), eval_f=dev.corhmm, lb=lower, ub=upper, opts=opts, phy=phy,liks=model.set.final$liks,Q=model.set.final$Q,rate=model.set.final$rate,root.p=root.p)
@@ -308,7 +308,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		#row.names(tip.states) <- phy$tip.label
 	}
 	if (node.states == "joint"){
-		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat,  method=node.states, ntraits=NULL,root.p=root.p)
+		lik.anc <- ancRECON(phy, data, est.pars, hrm=TRUE, rate.cat, rate.mat=rate.mat, method=node.states, ntraits=NULL,root.p=root.p)
 		phy$node.label <- lik.anc$lik.anc.states
 		tip.states <- lik.anc$lik.tip.states
 	}
@@ -444,40 +444,60 @@ dev.corhmm <- function(p,phy,liks,Q,rate,root.p) {
 	par.order<-NA
 	if(k.rates == 2){
 		try(par.order <- p[3] > p[8])
-		if(!is.na(par.order)){return(1000000)}
+		if(!is.na(par.order)){
+			if(par.order == TRUE){
+				return(1000000)
+			}
+		}
 	}
 	if(k.rates == 3){
 		try(par.order <- p[3] > p[9] | p[9] > p[14])
-		if(!is.na(par.order)){return(1000000)}
+		if(!is.na(par.order)){
+			if(par.order == TRUE){
+				return(1000000)
+			}
+		}		
 	}
 	if(k.rates == 4){
 		try(par.order <- p[3] > p[9] | p[9] > p[15] | p[15] > p[20])
-		if(!is.na(par.order)){return(1000000)}
+		if(!is.na(par.order)){
+			if(par.order == TRUE){
+				return(1000000)
+			}
+		}		
 	}
 	if(k.rates == 5){
 		try(par.order <- p[3] > p[9] | p[9] > p[15] | p[15] > p[21] | p[21] > p[26])
-		if(!is.na(par.order)){return(1000000)}
+		if(!is.na(par.order)){
+			if(par.order == TRUE){
+				return(1000000)
+			}
+		}		
 	}
 	#Specifies the root:
 	root <- nb.tip + 1L
 	#If any of the logs have NAs restart search:
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
+		equil.root <- NULL
+		for(i in 1:ncol(Q)){
+			posrows <- which(Q[,i] >= 0)
+			rowsum <- sum(Q[posrows,i])
+			poscols <- which(Q[i,] >= 0)
+			colsum <- sum(Q[i,poscols])
+			equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+		}		
 		if (is.null(root.p)){
-			flat.root = rep(1 / (k.rates*2), k.rates*2)
+			flat.root = equil.root
+			k.rates <- 1/length(which(!is.na(equil.root)))
+			flat.root[!is.na(flat.root)] = k.rates
+			flat.root[is.na(flat.root)] = 0
 			loglik<- -(sum(log(comp[-TIPS])) + log(sum(flat.root * liks[root,])))
 		}
 		else{
 			#root.p==maddfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
-			if(is.character(root.p)){				
-				equil.root <- NULL
-				for(i in 1:ncol(Q)){
-					posrows <- which(Q[,i] >= 0)
-					rowsum <- sum(Q[posrows,i])
-					poscols <- which(Q[i,] >= 0)
-					colsum <- sum(Q[i,poscols])
-					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
-				}
+			if(is.character(root.p)){
+				equil.root[is.na(equil.root)] = 0
 				loglik <- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
 				if(is.infinite(loglik)){return(1000000)}
 			}

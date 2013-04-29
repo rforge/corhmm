@@ -262,24 +262,29 @@ dev.corpaint<-function(p,phy,liks,Q,rate,regimes,root.p){
 	#If any of the logs have NAs restart search:
 	if (is.na(sum(log(comp[-TIPS])))){return(1000000)}
 	else{
+		equil.root <- NULL
+		for(i in 1:ncol(Q[[root.reg]])){
+			posrows <- which(Q[[root.reg]][,i] >= 0)
+			rowsum <- sum(Q[[root.reg]][posrows,i])
+			poscols <- which(Q[[root.reg]][i,] >= 0)
+			colsum <- sum(Q[[root.reg]][i,poscols])
+			equil.root <- c(equil.root,rowsum/(rowsum+colsum))
+		}		
 		if (is.null(root.p)){
-			flat.root = rep(1 / dim(Q[[1]])[2], dim(Q[[1]])[2])
+			flat.root = equil.root
+			k.rates <- 1/length(which(!is.na(equil.root)))
+			flat.root[!is.na(flat.root)] = k.rates
+			flat.root[is.na(flat.root)] = 0
 			loglik<- -(sum(log(comp[-TIPS])) + log(sum(flat.root * liks[root,])))
 		}
 		else{
-			#root.p==madfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
-			if(root.p == "maddfitz"){				
-				equil.root <- NULL
-				for(i in 1:ncol(Q[[root.reg]])){
-					posrows <- which(Q[[root.reg]][,i] >= 0)
-					rowsum <- sum(Q[[root.reg]][posrows,i])
-					poscols <- which(Q[[root.reg]][i,] >= 0)
-					colsum <- sum(Q[[root.reg]][i,poscols])
-					equil.root <- c(equil.root,rowsum/(rowsum+colsum))
-				}
-				loglik<- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
+			#root.p==maddfitz will fix root probabilities according to FitzJohn et al 2009 Eq. 10:
+			if(is.character(root.p)){
+				equil.root[is.na(equil.root)] = 0
+				loglik <- -(sum(log(comp[-TIPS])) + log(sum(equil.root * liks[root,])))
 				if(is.infinite(loglik)){return(1000000)}
 			}
+			#root.p!==NULL will fix root probabilities based on user supplied vector:
 			else{
 				loglik<- -(sum(log(comp[-TIPS])) + log(sum(root.p * liks[root,])))
 				if(is.infinite(loglik)){return(1000000)}
