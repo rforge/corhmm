@@ -363,34 +363,34 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				comp[focal] <- sum(v)
 				liks.up[focal,] <- v/comp[focal]
 			}
-			#Now get the states for the tips (will do, not available for general use):
-			for(i in 1:length(TIPS)){
-				focal <- TIPS[i]
-				#Gets mother and sister information of focal:
-				focalRow<-which(phy$edge[,2]==focal)
-				motherRow<-which(phy$edge[,1]==phy$edge[focalRow,1])
-				motherNode<-phy$edge[focalRow,1]
-				desNodes<-phy$edge[motherRow,2]
-				sisterNodes<-desNodes[(which(!desNodes==focal))]
-				sisterRows<-which(phy$edge[,2]%in%sisterNodes==TRUE)
-				#If the mother is not the root then you are calculating the probability of the being in either state.
-				#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
-				if(motherNode!=root){
-					v <- expm(tranQ * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
-				}
-				#If the mother is the root then just use the marginal. This can also be the prior. 
-				#But for now we are just going to use the marginal at the root -- it is unclear what Mesquite does.
-				else{
-					v <- equil.root
-				}
-				#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
-				#This is essentially calculating the product of the mothers probability and the sisters probability:
-				for (sisterIndex in sequence(length(sisterRows))){
-					v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
-				}
-				comp[focal] <- sum(v)
-				liks.up[focal,] <- v/comp[focal]
+		}
+		#Now get the states for the tips (will do, not available for general use):
+		for(i in 1:length(TIPS)){
+			focal <- TIPS[i]
+			#Gets mother and sister information of focal:
+			focalRow<-which(phy$edge[,2]==focal)
+			motherRow<-which(phy$edge[,1]==phy$edge[focalRow,1])
+			motherNode<-phy$edge[focalRow,1]
+			desNodes<-phy$edge[motherRow,2]
+			sisterNodes<-desNodes[(which(!desNodes==focal))]
+			sisterRows<-which(phy$edge[,2]%in%sisterNodes==TRUE)
+			#If the mother is not the root then you are calculating the probability of the being in either state.
+			#But note we are assessing the reverse transition, j to i, rather than i to j, so we transpose Q to carry out this calculation:
+			if(motherNode!=root){
+				v <- expm(tranQ * phy$edge.length[which(phy$edge[,2]==motherNode)], method=c("Ward77")) %*% liks.up[motherNode,]
 			}
+			#If the mother is the root then just use the marginal. This can also be the prior. 
+			#But for now we are just going to use the marginal at the root -- it is unclear what Mesquite does.
+			else{
+				v <- equil.root
+			}
+			#Now calculate the probability that each sister is in either state. Sister can be more than 1 when the node is a polytomy. 
+			#This is essentially calculating the product of the mothers probability and the sisters probability:
+			for (sisterIndex in sequence(length(sisterRows))){
+				v <- v*expm(Q * phy$edge.length[sisterRows[sisterIndex]], method=c("Ward77")) %*% liks.down[sisterNodes[sisterIndex],]
+			}
+			comp[focal] <- sum(v)
+			liks.up[focal,] <- v/comp[focal]
 		}
 		#The final pass
 		liks.final<-liks

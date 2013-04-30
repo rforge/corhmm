@@ -25,18 +25,18 @@ lb=0, ub=100, diagn=TRUE)
 \details{
 The function takes a tree and a trait file and estimates transition rates and ancestral states for binary or multistate characters. The first column of the trait file must contain the species labels to match to the tree, with the second, third, fourth, and so on, corresponding to the traits of interest. Use the \code{charnum} variable to select the trait for analysis. Also, the input phylogeny need not be bifurcating as the algorithm is implemented to handle multifucations. Polytomies are allowed by generalizing Felsenstein's (1981) pruning algorithm to be the product of the probability of observing the tip states of n descendant nodes, rather than two, as in the completely bifurcating case.
 
-The user can fix the root state probabilities by supplying a vector to the \code{root.p}. If user supplies the flag \code{root.p}=\dQuote{maddfitz} calls the same procedure described by Maddison et al (2007) and FitzJohn et al (2009), which uses the transition rates to assign prior probabilities at the root. This procedure assumes that the evolution of a particular character does not begin with the clade of interest, and if enough time has passed prior to the root, the root state is a random draw from the equilibrium distribution described by the transition model. Note that the default \code{root.p=NULL} assumes equal weighting among all possible states.  
+The user can fix the root state probabilities by supplying a vector to the \code{root.p}. If user supplies the flag \code{root.p}=\dQuote{maddfitz} calls the same procedure described by Maddison et al (2007) and FitzJohn et al (2009) is used. Note, however, that the default \code{root.p=NULL} assumes equal weighting among all possible states.  
 
-Ambiguities (polymorphic taxa or taxa missing data) are assigned likelihoods following Felsenstein (2004, p. 255). Polymorphic taxa are coded \dQuote{&}with all states observed at a tip. For example, if a trait has four states and taxonA is observed to be in state 1 and 3, the character would be coded as \dQuote{1&3}. rayDISC then uses this information to assign a likelihood of 1.0 to both states. Missing data are treated as ambiguous for all states, thus all states for taxa missing data are assigned a likelihood of 1.0. For example, for a four-state character (i.e. DNA), a taxon missing data will have likelihoods of all four states equal to 1.0 [e.g. L(A)=1.0, L(C)=1.0, L(G)=1.0, L(T)=1.0].
+Ambiguities (polymorphic taxa or taxa missing data) are assigned likelihoods following Felsenstein (2004, p. 255). Polymorphic taxa are coded \dQuote{&} with all states observed at a tip. For example, if a trait has four states and taxonA is observed to be in state 1 and 3, the character would be coded as \dQuote{1&3}. rayDISC then uses this information to assign a likelihood of 1.0 to both states. Missing data are treated as ambiguous for all states, thus all states for taxa missing data are assigned a likelihood of 1.0. For example, for a four-state character (i.e. DNA), a taxon missing data will have likelihoods of all four states equal to 1.0 [e.g. L(A)=1.0, L(C)=1.0, L(G)=1.0, L(T)=1.0].
 }
 \value{
 \code{rayDISC} returns an object of class \code{rayDISC}. This is a list with elements:
 \item{$loglik}{the maximum negative log-likelihood.}
 \item{$AIC}{Akaike information criterion.}
-\item{$AICc}{Akaike information criterion corrected for sample-size.}
+\item{$AICc}{Akaike information criterion corrected for sample size.}
 \item{$ntraits}{The number of traits specified.}
 \item{$solution}{a matrix containing the maximum likelihood estimates of the transition rates.}
-\item{$solution.se}{a matrix containing the approximate standard errors of the transition rates. The standard error is calculated as the diagonal of the inverse of the Hessian matrix.}
+\item{$solution.se}{a matrix containing the approximate standard errors of the transition rates. The standard error is calculated as the square root of the diagonal of the inverse of the Hessian matrix.}
 \item{$index.mat}{The indices of the parameters being estimated are returned. The numbers correspond to the row in the \code{eigvect} and can useful for identifying the parameters that are causing the objective function to be at a saddlepoint.}
 \item{$opts}{Internal settings of the likelihood search.}
 \item{$data}{User-supplied dataset.}
