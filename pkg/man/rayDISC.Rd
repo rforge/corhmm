@@ -59,7 +59,8 @@ Ambiguities (polymorphic taxa or taxa missing data) are assigned likelihoods fol
 
 ## Perform ancestral state estimation, using an asymmetric model of evolution and marginal
 ## reconstruction of ancestral states
-# recon <- rayDISC(rayDISC.example$tree,rayDISC.example$trait,model="ARD",node.states="marginal")
+# recon <- rayDISC(rayDISC.example$tree,rayDISC.example$trait,model="ARD",
+# node.states="marginal")
 
 ## Plot reconstructions on tree
 # plotRECON(rayDISC.example$tree,recon$states)
@@ -74,7 +75,8 @@ Ambiguities (polymorphic taxa or taxa missing data) are assigned likelihoods fol
 ### Example 3
 ## Perform ancestral state estimation on third character, using a single-rate model of 
 ## evolution and joint reconstruction of ancestral states
-# recon <- rayDISC(rayDISC.example$tree,rayDISC.example$trait,charnum=3,model="ER",node.states="joint") 
+# recon <- rayDISC(rayDISC.example$tree,rayDISC.example$trait,charnum=3,
+# model="ER",node.states="joint") 
 }
 \references{
 Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.

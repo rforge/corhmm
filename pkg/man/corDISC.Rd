@@ -55,11 +55,12 @@ We also note that scoring information that is missing for a species can be incor
 # new.mat <- rate.par.drop(new.mat, c(2,8,5,6))
 
 ## Obtain the fit for two binary characters
-# pp<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=new.mat,model="ARD",node.states="marginal",diagn=FALSE)
+# pp<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=new.mat,model="ARD",
+# node.states="marginal", diagn=FALSE)
 # pp
 }
 \references{
-Beaulieu J.M., and M.J. Donoghue 2013. Fruit evolution and diversification in campanulid angiosperms. Evolution In revision.
+Beaulieu J.M., and M.J. Donoghue 2013. Fruit evolution and diversification in campanulid angiosperms. Evolution In press.
 
 Felsenstein, J. 1981. A likelihood approach to character weighting and what it tells us about parsimony and compatibility. Biological Journal of the Linnean Society 16: 183-196.
 

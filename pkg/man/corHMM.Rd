@@ -50,7 +50,7 @@ The input phylogeny need not be bifurcating as the algorithm is implemented to h
 ## Not run
 # data(primates)
 ## Obtain the fit of second rate class underlying a binary character:
-# pp<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=2,node.states="marginal", optim.method="subplex")
+# pp<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=2,node.states="marginal")
 # pp
 }
 \references{
