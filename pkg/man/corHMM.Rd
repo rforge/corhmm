@@ -5,7 +5,7 @@
 \usage{
 corHMM(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), 
 optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, 
-lb=0, ub=100, diagn=TRUE)
+lb=0, ub=100, diagn=FALSE)
 }       
 \arguments{
 \item{phy}{a phylogenetic tree, in \code{ape} \dQuote{phylo} format.}
@@ -21,7 +21,7 @@ lb=0, ub=100, diagn=TRUE)
 \item{n.cores}{the number of processor cores to spread out the random restarts.}
 \item{lb}{lower bound for the likelihood search. The default is \code{lb=0}.}
 \item{ub}{upper bound for the likelihood search. The default is \code{ub=100}.}
-\item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{TRUE}.}
+\item{diagn}{logical indicating whether diagnostic tests should be performed. The default is \code{FALSE}.}
 }
 \details{
 The function takes a tree and a trait file and estimates transition rates and ancestral states for a single binary character using the hidden rates model (HRM). The HRM is a generalization of the covarion model that allows different rate classes to be treated as "hidden" states in reconstructing ancestral character states. For example, for a model with two rate classes, slow (S) and fast (F), underlie each observed state of 0 and 1. Since we only observe states, we treat each observation as having a probability of 1 for being either in the F and S categories. In other words, a character state 0 at a tip is assumed to have a probability of 1 for being 0_S and 0_F. The likelihood function is then maximized using the bounded subplex optimization routine (\code{optim.method=subplex}) implemented in the R package \code{nloptr}, which provides a common interface to NLopt, an open-source library for nonlinear optimization. Users can also set \code{optim.method=rgenoud} to specify that likelihood function is to maximized using a genetic algorithm. In the former case, however, it is recommended that \code{nstarts} is set to a large value (e.g. 100) to ensure that the maximum likelihood solution is found. Users can set \code{n.cores} to parse the random restarts onto multiple processors.
