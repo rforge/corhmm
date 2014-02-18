@@ -305,6 +305,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 			else{
 				#Calculates P_ij(t_z):
 				Pij <- expm(Q * tz, method=c("Ward77"))
+				
 				#Calculates L_z(i):
 				if(hrm==TRUE){
 					v<-c(rep(1, k*rate.cat))
@@ -320,11 +321,13 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				#Collects which is the highest likelihood and which state it corresponds to:
 				liks[focal,] <- apply(L, 2, max)
 				comp[focal,] <- apply(L, 2, which.max)
-				#log compensation to deal with underflow issues:
-				if(any(liks[focal,] < 1e-50)){
-					tmp <- 1e-50 / liks[focal,]
+				#log compensation to deal with underflow issues -- works only sometimes -- still testing with fruit type stuff:
+				if(any(liks[focal,][!liks[focal,]==0] < 1e-500)){
+					tmp <- liks[focal,]
+					tmp[!tmp==0] <- 1e-500 / tmp[!tmp==0]
 					liks[focal,] = liks[focal,] * tmp
-					logcomp[focal,] <- log(tmp)
+					tmp[!tmp==0] <- log(tmp[!tmp==0])
+					logcomp[focal,] <- tmp
 				}		
 			}
 		}

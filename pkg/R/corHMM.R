@@ -2,7 +2,7 @@
 
 #written by Jeremy M. Beaulieu
 
-corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal","scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0, ub=100, diagn=FALSE){
+corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "marginal", "scaled"), optim.method=c("subplex"), p=NULL, root.p=NULL, ip=NULL, nstarts=10, n.cores=NULL, lb=0, ub=100, diagn=FALSE){
 	
 	# Checks to make sure node.states is not NULL.  If it is, just returns a diagnostic message asking for value.
 	if(is.null(node.states)){
