@@ -321,7 +321,7 @@ ancRECON <- function(phy, data, p, method=c("joint", "marginal", "scaled"), hrm=
 				#Collects which is the highest likelihood and which state it corresponds to:
 				liks[focal,] <- apply(L, 2, max)
 				comp[focal,] <- apply(L, 2, which.max)
-				#log compensation to deal with underflow issues -- works only sometimes -- still testing with fruit type stuff:
+				#log compensation to deal with underflow issues based on what BiSSE does -- works only sometimes -- still testing will be available in next version:
 				if(any(liks[focal,][!liks[focal,]==0] < 1e-500)){
 					tmp <- liks[focal,]
 					tmp[!tmp==0] <- 1e-500 / tmp[!tmp==0]
