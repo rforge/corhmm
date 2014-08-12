@@ -25,7 +25,7 @@ corHMM<-function(phy, data, rate.cat, rate.mat=NULL, node.states=c("joint", "mar
 		}
 	}
 	
-	# Checks to make sure phy & data have same taxa. sFixes conflicts (see match.tree.data function).
+	# Checks to make sure phy & data have same taxa. Fixes conflicts (see match.tree.data function).
 	matching <- match.tree.data(phy,data) 
 	data <- matching$data
 	phy <- matching$phy
