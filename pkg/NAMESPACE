@@ -1,4 +1,4 @@
-export(corHMM,corDISC,corPAINT,rate.mat.maker,rate.par.drop,rate.par.eq,ancRECON,rayDISC,plotRECON)
+export(corHMM,corDISC,corPAINT,rate.mat.maker,rate.par.drop,rate.par.eq,ancRECON,rayDISC,plotRECON, dev.raydisc)
 import(ape, nloptr, corpcor, rgenoud)
 importFrom(numDeriv, hessian)
 importFrom(expm, expm)
